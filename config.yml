@@ -1,6 +1,12 @@
-baseURL: "https://pascalmichaillat.org/hugo-website/" 
-title: Moritz-Maria von Igelfeld
+baseURL: "https://pascalmichaillat.org/hugo-website/"
+title: Saeed Mehrang
 theme: PaperMod
+defaultContentLanguage: en
+languages:
+  en:
+    languageCode: "en-us"
+    languageName: "English"
+    weight: 1
 
 enableInlineShortcodes: true
 enableRobotsTXT: true
@@ -24,13 +30,13 @@ menu:
         - name: Data
           url: data/
           weight: 4 
-        - name: Blog
-          url: https://en.wikipedia.org/wiki/Moritz-Maria_von_Igelfeld_(character)
+        - name: News
+          url: news/
           weight: 6
 
 params:
-    description: "This website hosts Moritz-Maria von Igelfeld's research papers, books, course materials, data, curriculum vitae, and contact information."
-    author: Moritz-Maria von Igelfeld
+    description: "This website hosts Saeed Mehrang's research papers, books, course materials, data, curriculum vitae, and contact information."
+    author: Saeed Mehrang
     # googleAnalyticsID: "G-XXXXX"
     DateFormat: "January 2006"
     defaultTheme: light
@@ -54,9 +60,20 @@ params:
     math: true
     profileMode:
           enabled: true
-          title: Professor Dr von Igelfeld
-          subtitle: "I am a Professor in the Institute of Romance Philology at the University of Regensburg, Germany. My research focuses on Portuguese irregular verbs. I was a doctoral student of Professor Dr Dieter Vogelsang in Munich, and later a second assistant of Professor Walter Schoeffler-Henschell at the University of Wiesbaden."
-          imageUrl: "picture.jpeg"
+          title: Saeed Mehrang
+          subtitle: >
+                    I am a Lead Data Scientist and Founding Partner at Vaalia Health, Helsini, Finland.
+                    I hold Doctor of Science (DSc) degree in Information and Communication Technologies
+                    from University of Turku.
+                    
+                    I have worked on various AI based technologies covering
+                    various kinds of neural network based models for the analysis of text, image, audio, 
+                    biosignals, and tabular data. My current focus is on time series analysis, causal AI, 
+                    and applications of Agentic workflows for patient-care optimization.  
+                    
+                    Previously, I was a Senior AI Scientist at Silo AI.
+                    
+          imageUrl: "my-image.jpeg"
           imageWidth: 160
           imageHeight: 160
           buttons:
@@ -72,14 +89,14 @@ params:
               url: tags/
             - name: Archive
               url: archive/
-            - name: Blog
-              url: https://en.wikipedia.org/wiki/Moritz-Maria_von_Igelfeld_(character)
+            - name: News
+              url: news/
 
     socialIcons:
         - name: CV
           url: cv.pdf
         - name: Email
-          url: mailto:igelfeld@regensburg.edu
+          url: saeed.mehrang@vaalia.health
         - name: Zoom
           url: https://www.zoom.us/my/igelfeld
         - name: Location
