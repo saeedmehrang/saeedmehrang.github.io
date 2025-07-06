@@ -1,0 +1,318 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="wristBandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ee5a52;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="rawDataGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ecdc4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#44a08d;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="featureGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#45b7d1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3498db;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="classifierGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="outputGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Drop shadow filter -->
+    <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    
+    <!-- Glow effect -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGradient)"/>
+  
+  <!-- Floating particles -->
+  <circle cx="100" cy="150" r="2" fill="rgba(255,255,255,0.4)">
+    <animate attributeName="cy" values="150;120;150" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="680" cy="220" r="1.5" fill="rgba(255,255,255,0.3)">
+    <animate attributeName="cy" values="220;190;220" dur="4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="150" cy="380" r="2.5" fill="rgba(255,255,255,0.5)">
+    <animate attributeName="cy" values="380;350;380" dur="3.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;0.9;0.5" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="650" cy="450" r="2" fill="rgba(255,255,255,0.4)">
+    <animate attributeName="cy" values="450;420;450" dur="4.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="720" cy="180" r="1" fill="rgba(255,255,255,0.3)">
+    <animate attributeName="cy" values="180;160;180" dur="2.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="80" cy="320" r="1.5" fill="rgba(255,255,255,0.4)">
+    <animate attributeName="cy" values="320;300;320" dur="3.8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.4;0.7;0.4" dur="2.8s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Title -->
+  <text x="400" y="40" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
+    Activity Recognition ML Framework
+  </text>
+  
+  <!-- Wrist-Band Node -->
+  <rect x="250" y="70" width="300" height="60" rx="15" fill="url(#wristBandGradient)" filter="url(#dropShadow)">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="2s" repeatCount="indefinite"/>
+  </rect>
+  <text x="400" y="95" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
+    Wrist-Band
+  </text>
+  <text x="400" y="115" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-family="Arial, sans-serif" font-size="12">
+    Triaxial Accelerometer &amp; Optical HR
+  </text>
+  
+  <!-- Animated wrist-band sensors -->
+  <g transform="translate(580, 90)">
+    <!-- Accelerometer visualization -->
+    <rect x="-8" y="-8" width="16" height="16" rx="2" fill="rgba(255,255,255,0.6)">
+      <animate attributeName="width" values="16;20;16" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="height" values="16;20;16" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="x" values="-8;-10;-8" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="-8;-10;-8" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <circle cx="0" cy="0" r="3" fill="rgba(255,255,255,0.9)">
+      <animate attributeName="r" values="3;5;3" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <!-- Pulse waves -->
+    <circle cx="0" cy="0" r="8" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1">
+      <animate attributeName="r" values="8;15;8" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Heart rate sensor -->
+  <g transform="translate(220, 90)">
+    <circle cx="0" cy="0" r="6" fill="rgba(255,255,255,0.6)">
+      <animate attributeName="fill" values="rgba(255,255,255,0.6);rgba(255,100,100,0.8);rgba(255,255,255,0.6)" dur="1s" repeatCount="indefinite"/>
+    </circle>
+    <!-- Heartbeat line -->
+    <path d="M -8,0 L -5,0 L -3,-5 L -1,5 L 1,-3 L 3,0 L 8,0" stroke="rgba(255,255,255,0.8)" stroke-width="2" fill="none">
+      <animate attributeName="opacity" values="0.8;0.3;0.8" dur="1s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  
+  <!-- Arrow 1 -->
+  <line x1="400" y1="140" x2="400" y2="170" stroke="rgba(255,255,255,0.8)" stroke-width="3"/>
+  <polygon points="400,175 395,165 405,165" fill="rgba(255,255,255,0.8)"/>
+  
+  <!-- Animated data flow dots -->
+  <circle cx="400" cy="155" r="3" fill="#00f2fe" filter="url(#glow)">
+    <animate attributeName="cy" values="145;165;145" dur="1s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="1s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="395" cy="150" r="2" fill="#4facfe">
+    <animate attributeName="cy" values="140;160;140" dur="1.2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="405" cy="160" r="2" fill="#00f2fe">
+    <animate attributeName="cy" values="150;170;150" dur="0.8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.4;0.9;0.4" dur="0.8s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Raw Data Node -->
+  <rect x="300" y="180" width="200" height="50" rx="15" fill="url(#rawDataGradient)" filter="url(#dropShadow)">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="2.5s" repeatCount="indefinite"/>
+  </rect>
+  <text x="400" y="210" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
+    Raw Data
+  </text>
+  
+  <!-- Animated data streams -->
+  <g transform="translate(520, 200)">
+    <!-- Data stream bars -->
+    <rect x="0" y="-8" width="3" height="16" fill="rgba(255,255,255,0.6)">
+      <animate attributeName="height" values="16;25;16" dur="0.5s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="-8;-12.5;-8" dur="0.5s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="5" y="-6" width="3" height="12" fill="rgba(255,255,255,0.6)">
+      <animate attributeName="height" values="12;20;12" dur="0.7s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="-6;-10;-6" dur="0.7s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="10" y="-10" width="3" height="20" fill="rgba(255,255,255,0.6)">
+      <animate attributeName="height" values="20;28;20" dur="0.6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="-10;-14;-10" dur="0.6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="15" y="-5" width="3" height="10" fill="rgba(255,255,255,0.6)">
+      <animate attributeName="height" values="10;18;10" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="-5;-9;-5" dur="0.8s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  
+  <!-- Arrow 2 -->
+  <line x1="400" y1="240" x2="400" y2="270" stroke="rgba(255,255,255,0.8)" stroke-width="3"/>
+  <polygon points="400,275 395,265 405,265" fill="rgba(255,255,255,0.8)"/>
+  
+  <!-- Data flow dots -->
+  <circle cx="400" cy="255" r="3" fill="#00f2fe" filter="url(#glow)">
+    <animate attributeName="cy" values="245;265;245" dur="1.1s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="1.1s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Feature Extraction Node -->
+  <rect x="275" y="280" width="250" height="50" rx="15" fill="url(#featureGradient)" filter="url(#dropShadow)">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="3s" repeatCount="indefinite"/>
+  </rect>
+  <text x="400" y="310" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
+    Feature Extraction
+  </text>
+  
+  <!-- Animated feature extraction process -->
+  <g transform="translate(545, 300)">
+    <!-- Feature extraction gears -->
+    <circle cx="0" cy="0" r="8" fill="rgba(255,255,255,0.6)" stroke="rgba(255,255,255,0.4)" stroke-width="1">
+      <animateTransform attributeName="transform" type="rotate" values="0;360" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="4" fill="rgba(255,255,255,0.8)">
+      <animateTransform attributeName="transform" type="rotate" values="0;360" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <!-- Feature nodes -->
+    <circle cx="15" cy="0" r="3" fill="rgba(255,255,255,0.7)">
+      <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.6)">
+      <animate attributeName="r" values="2;4;2" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="10" cy="-10" r="2" fill="rgba(255,255,255,0.6)">
+      <animate attributeName="r" values="2;4;2" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Arrow 3 -->
+  <line x1="400" y1="340" x2="400" y2="370" stroke="rgba(255,255,255,0.8)" stroke-width="3"/>
+  <polygon points="400,375 395,365 405,365" fill="rgba(255,255,255,0.8)"/>
+  
+  <!-- Data flow dots -->
+  <circle cx="400" cy="355" r="3" fill="#00f2fe" filter="url(#glow)">
+    <animate attributeName="cy" values="345;365;345" dur="1.3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="1.3s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Random Forest Classifier Node -->
+  <rect x="250" y="380" width="300" height="50" rx="15" fill="url(#classifierGradient)" filter="url(#dropShadow)">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="3.5s" repeatCount="indefinite"/>
+  </rect>
+  <text x="400" y="410" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
+    Random Forest Classifier
+  </text>
+  
+  <!-- Animated forest trees -->
+  <g transform="translate(570, 400)">
+    <!-- Tree 1 -->
+    <rect x="-2" y="0" width="4" height="10" fill="rgba(255,255,255,0.6)"/>
+    <polygon points="0,-5 -4,0 4,0" fill="rgba(255,255,255,0.7)">
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
+    </polygon>
+    <!-- Tree 2 -->
+    <rect x="8" y="0" width="4" height="10" fill="rgba(255,255,255,0.6)"/>
+    <polygon points="10,-5 6,0 14,0" fill="rgba(255,255,255,0.7)">
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="2.3s" repeatCount="indefinite"/>
+    </polygon>
+    <!-- Tree 3 -->
+    <rect x="18" y="0" width="4" height="10" fill="rgba(255,255,255,0.6)"/>
+    <polygon points="20,-5 16,0 24,0" fill="rgba(255,255,255,0.7)">
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="1.8s" repeatCount="indefinite"/>
+    </polygon>
+    <!-- Decision paths -->
+    <path d="M 0,-5 L 5,-10 M 0,-5 L -5,-10" stroke="rgba(255,255,255,0.5)" stroke-width="1">
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  
+  <!-- Arrow 4 -->
+  <line x1="400" y1="440" x2="400" y2="470" stroke="rgba(255,255,255,0.8)" stroke-width="3"/>
+  <polygon points="400,475 395,465 405,465" fill="rgba(255,255,255,0.8)"/>
+  
+  <!-- Data flow dots -->
+  <circle cx="400" cy="455" r="3" fill="#00f2fe" filter="url(#glow)">
+    <animate attributeName="cy" values="445;465;445" dur="1.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="1.4s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Activity Recognition Output Node -->
+  <rect x="225" y="480" width="350" height="50" rx="15" fill="url(#outputGradient)" filter="url(#dropShadow)">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="4s" repeatCount="indefinite"/>
+  </rect>
+  <text x="400" y="510" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
+    Activity Recognition Output
+  </text>
+  
+  <!-- Animated activity icons -->
+  <g transform="translate(590, 500)">
+    <!-- Walking figure -->
+    <circle cx="0" cy="-8" r="3" fill="rgba(255,255,255,0.8)"/>
+    <line x1="0" y1="-5" x2="0" y2="5" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>
+    <line x1="0" y1="0" x2="-3" y2="-2" stroke="rgba(255,255,255,0.8)" stroke-width="2">
+      <animate attributeName="x2" values="-3;3;-3" dur="1s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="-2;-2;-2" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="0" x2="3" y2="-2" stroke="rgba(255,255,255,0.8)" stroke-width="2">
+      <animate attributeName="x2" values="3;-3;3" dur="1s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="-2;-2;-2" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="5" x2="-3" y2="8" stroke="rgba(255,255,255,0.8)" stroke-width="2">
+      <animate attributeName="x2" values="-3;3;-3" dur="1s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="8;8;8" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="5" x2="3" y2="8" stroke="rgba(255,255,255,0.8)" stroke-width="2">
+      <animate attributeName="x2" values="3;-3;3" dur="1s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="8;8;8" dur="1s" repeatCount="indefinite"/>
+    </line>
+  </g>
+  
+  <!-- Classification confidence indicator -->
+  <g transform="translate(200, 500)">
+    <rect x="0" y="-3" width="20" height="6" rx="3" fill="rgba(255,255,255,0.3)"/>
+    <rect x="0" y="-3" width="15" height="6" rx="3" fill="rgba(255,255,255,0.8)">
+      <animate attributeName="width" values="15;20;15" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="25" y="2" fill="rgba(255,255,255,0.8)" font-family="Arial, sans-serif" font-size="10">92%</text>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="150" cy="200" r="25" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2">
+    <animate attributeName="r" values="25;30;25" dur="4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.6;0.3" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="650" cy="300" r="30" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2">
+    <animate attributeName="r" values="30;35;30" dur="3.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="100" cy="420" r="20" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2">
+    <animate attributeName="r" values="20;25;20" dur="4.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.6;0.3" dur="4.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="700" cy="450" r="25" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2">
+    <animate attributeName="r" values="25;30;25" dur="3.8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3.8s" repeatCount="indefinite"/>
+  </circle>
+</svg>
