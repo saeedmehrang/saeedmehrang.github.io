@@ -1,8 +1,8 @@
 ---
 title: "Location"
-date: 2024-05-08
+date: 2025-01-01
 hidemeta: true
-description: "Professor Dr von Igelfeld's mailing and office addresses at the Institute of Romance Philology."
+description: "Saeed Mehrang, Maria01, Helsinki"
 
 ---
 

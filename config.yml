@@ -65,13 +65,13 @@ params:
                     I am a Lead Data Scientist and Founding Partner at Vaalia Health, Helsini, Finland.
                     I hold Doctor of Science (DSc) degree in Information and Communication Technologies
                     from University of Turku.
-                    
                     I have worked on various AI based technologies covering
                     various kinds of neural network based models for the analysis of text, image, audio, 
                     biosignals, and tabular data. My current focus is on time series analysis, causal AI, 
-                    and applications of Agentic workflows for patient-care optimization.  
+                    and applications of Agentic workflows for patient-care optimization. Previously, 
+                    I was a Senior AI Scientist at Silo AI.
                     
-                    Previously, I was a Senior AI Scientist at Silo AI.
+                    
                     
           imageUrl: "my-image.jpeg"
           imageWidth: 160
@@ -96,25 +96,25 @@ params:
         - name: CV
           url: cv.pdf
         - name: Email
-          url: saeed.mehrang@vaalia.health
-        - name: Zoom
-          url: https://www.zoom.us/my/igelfeld
-        - name: Location
-          url: location/
-        - name: Office Hours
-          url: officehours/
+          url: saeedmehrang@gmail.com
+        # - name: Zoom
+        #   url: https://www.zoom.us/my/igelfeld
+        # - name: Location
+        #   url: location/
+        # - name: Office Hours
+        #   url: officehours/
         - name: Google Scholar
-          url: https://scholar.google.com/citations?user=cL23w-4AAAAJ
+          url: https://scholar.google.fi/citations?user=1q3dgpEAAAAJ&hl=fi
         - name: GitHub
-          url: https://github.com/pmichaillat
-        - name: Substack
-          url: https://pmichaillat.substack.com
-        - name: YouTube
-          url: https://www.youtube.com/@pmichaillat
-        - name: Twitter
-          url: https://x.com/pmichaillat
-        - name: Bluesky
-          url: https://bsky.app/profile/pmichaillat.bsky.social
+          url: https://github.com/saeedmehrang
+        - name: Linkedin
+          url: https://fi.linkedin.com/in/saeedmehrang
+        # - name: YouTube
+        #   url: https://www.youtube.com/@pmichaillat
+        # - name: Twitter
+        #   url: https://x.com/pmichaillat
+        # - name: Bluesky
+        #   url: https://bsky.app/profile/pmichaillat.bsky.social
 
     assets:
         disableScrollBarStyle: true
