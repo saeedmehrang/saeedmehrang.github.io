@@ -19,7 +19,7 @@ editPost:
 
 ##### Download
 
-+ [Paper](https://www.mdpi.com/1424-8220/18/2/613/pdf)
++ [Paper](https://www.mdpi.com/1424-8220/18/2/613)
 
 ---
 
