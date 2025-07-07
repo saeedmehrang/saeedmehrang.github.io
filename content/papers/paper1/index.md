@@ -6,7 +6,7 @@ author: ["Saeed Mehrang", "Julia Pietilä", "Ilkka Korhonen"]
 description: "This paper presents an activity recognition framework using a single optical heart rate monitoring and triaxial accelerometer wrist-band."
 summary: "This paper investigates a range of daily life activities and uses a random forest classifier to detect them based on wrist motions and optical heart rate. The highest accuracy was achieved with a forest of 64 trees and 13-s signal segments."
 cover:
-    image: "paper1.svg"
+    image: "paper1_diagram.png"
     alt: "Activity Recognition Framework"
     relative: true
 editPost:
