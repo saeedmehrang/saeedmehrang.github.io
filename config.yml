@@ -67,10 +67,12 @@ params:
     profileMode:
           enabled: true
           title: Saeed Mehrang
-          subtitle: >
+          subtitle: |
                     I am a Lead Data Scientist and Founding Partner at Vaalia Health, Helsini, Finland.
                     I hold Doctor of Science (DSc) degree in Information and Communication Technologies
-                    from University of Turku.
+                    from University of Turku.  
+
+
                     I have worked on various AI based technologies covering
                     various kinds of neural network based models for the analysis of text, image, audio, 
                     biosignals, and tabular data. My current focus is on time series analysis, causal AI, 
