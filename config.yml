@@ -1,6 +1,5 @@
 baseURL: "https://pascalmichaillat.org/hugo-website/"
-title: Saeed Mehrang
-theme: PaperMod
+title: &title Saeed Mehrang
 defaultContentLanguage: en
 languages:
   en:
@@ -18,25 +17,32 @@ taxonomies:
 
 menu:
     main:
-        - name: Books
-          url: books/
-          weight: 5 
+        # - name: Books
+        #   url: books/
+        #   weight: 5 
         - name: Papers
           url: papers/
           weight: 2
-        - name: Courses
-          url: courses/
-          weight: 3
-        - name: Data
-          url: data/
-          weight: 4 
+        # - name: Courses
+        #   url: courses/
+        #   weight: 3
+        # - name: Data
+        #   url: data/
+        #   weight: 4 
         - name: News
           url: news/
           weight: 6
+        - name: Tags
+          url: tags/
+          weight: 7
+        - name: Archive
+          url: archive/
+          weight: 1
+        
 
 params:
-    description: "This website hosts Saeed Mehrang's research papers, books, course materials, data, curriculum vitae, and contact information."
-    author: Saeed Mehrang
+    description: "This website hosts Saeed Mehrang's research papers, curriculum vitae, and contact information."
+    author: *title
     # googleAnalyticsID: "G-XXXXX"
     DateFormat: "January 2006"
     defaultTheme: light
@@ -50,7 +56,7 @@ params:
     ShowBreadCrumbs: false
     ShowCodeCopyButtons: true
     ShowAllPagesInArchive: false
-    MainSections: ["books","courses","papers","data"]
+    MainSections: ["papers"] # ["books","courses","papers","data"]
     ShowToc: false
     disableScrollToTop: true
     TocOpen: true
@@ -79,12 +85,12 @@ params:
           buttons:
             - name: Papers
               url: papers/
-            - name: Data
-              url: data/
-            - name: Books
-              url: books/
-            - name: Courses
-              url: courses/
+            # - name: Data
+            #   url: data/
+            # - name: Books
+            #   url: books/
+            # - name: Courses
+            #   url: courses/
             - name: Tags
               url: tags/
             - name: Archive
@@ -122,7 +128,7 @@ params:
         hiddenInList: false
         hiddenInSingle: true
     label:
-      text: "Moritz-Maria von Igelfeld"
+      text: Home
       icon: favicon.ico
       iconHeight: 18
 
@@ -137,3 +143,7 @@ markup:
         endLevel: 2
         ordered: false
         startLevel: 2
+
+module:
+    imports:
+        - path: github.com/adityatelange/hugo-PaperMod
