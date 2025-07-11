@@ -2,6 +2,21 @@
 
 This document outlines the steps to personalize your Hugo website with your own content.
 
+## General Repository Updates
+
+### Updating the main content and the personal info
+- ✔️ The `config.yml` file and the `content/` are all updated.
+
+### Updating the Main README.md
+- ✔️ The `README.md` file in the root of the repository has been updated to reflect that this is a personal website and not a template, while also acknowledging the original template provider and noting customizations.
+
+### GitHub Pages Deployment Setup
+- ✔️ GitHub Pages has been enabled and configured to use GitHub Actions for deployment. This involved setting the source to "GitHub Actions" in the repository settings, allowing the `hugo.yml` workflow to build and deploy the site.
+
+
+# Additions to be Made ...
+
+
 ## 1. Adding Courses
 
 Your website is already structured to handle courses. Here's how to add your "Matrix Algebra" and "Neural Network" courses.
@@ -90,67 +105,3 @@ To add a section for news and tech trends, you'll need to create a new content s
         hugo new news/my-first-tech-trend-post.md
         ```
     *   This will create a new markdown file in `/content/news/`. Edit this file to add your content.
-
-## 3. Adding Work Experience and Education
-
-You have a few options for adding your professional background.
-
-### Option A: Update the Homepage Profile (Easiest)
-
-Your homepage already has a profile section. You can quickly update this with your experience and education.
-
-1.  **Edit `config.yml`:**
-    *   Open the `config.yml` file.
-    *   Find the `params.profileMode.subtitle` section.
-    *   Replace the existing text with your own bio, including your work experience and education.
-
-### Option B: Create a Detailed CV/Resume Page
-
-For a more detailed presentation, you can create a dedicated page.
-
-1.  **Create an "About" Page:**
-    *   Create a new file: `/home/sam/Data/code/my-hugo-website/content/about.md`
-    *   Add your content in Markdown format. You can structure it with headings for "Work Experience," "Education," "Skills," etc.
-    *   Example front matter for `/content/about.md`:
-    ```yaml
-    ---
-    title: "About Me"
-    date: 2025-06-29
-    draft: false
-    ---
-
-    ## Education
-    *   **Ph.D. in Computer Science** - University of Example (2020)
-    *   **B.S. in Mathematics** - Example College (2016)
-
-    ## Work Experience
-    *   **Senior AI Researcher** - Tech Corp (2020 - Present)
-    *   ...
-    ```
-
-2.  **Add "About" to the Menu:**
-    *   If you want a link to this new page in your main menu, add it to `config.yml` as you did for the "News" section.
-
-### Option C: Link to your PDF CV
-
-Your site already includes a `cv.pdf` file in the `static` folder and a link to it in the social icons. You can simply update this PDF file with your latest information.
-
-*   **File Location:** `/home/sam/Data/code/my-hugo-website/static/cv.pdf`
-*   Replace the existing file with your own CV. The "CV" link on your homepage will automatically point to the new file.
-
-## 4. Personalizing Site-Wide Information
-
-Several key details of your website are controlled by the `config.yml` file. Here are the most important ones to change:
-
-*   **`title`**: The main title of your website (e.g., "Sam's Portfolio & Blog").
-*   **`author`**: Your name, which appears in metadata.
-*   **`description`**: A short description of your site for search engines.
-*   **`params.profileMode`**: This controls the main homepage profile.
-    *   **`title`**: Your name or professional title.
-    *   **`subtitle`**: Your bio, which can include your work experience and education.
-    *   **`imageUrl`**: The path to your profile picture (e.g., `"picture.jpeg"`). Make sure the image is in the `/static/` directory.
-*   **`params.socialIcons`**: This is a list of your social media and other links.
-    *   You can edit or remove the existing entries.
-    *   To add a new one, follow the existing format (e.g., `- name: LinkedIn
-      url: https://www.linkedin.com/in/your-profile`).
-*   **`menu.main`**: This controls the main navigation menu at the top of the page. You can add, remove, or reorder items here.
