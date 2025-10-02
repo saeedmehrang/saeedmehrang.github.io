@@ -23,15 +23,15 @@ menu:
         - name: Papers
           url: papers/
           weight: 2
-        # - name: Courses
-        #   url: courses/
-        #   weight: 3
+        - name: Courses
+          url: courses/
+          weight: 3
         # - name: Data
         #   url: data/
         #   weight: 4 
-        - name: News
-          url: news/
-          weight: 6
+        # - name: News
+        #   url: news/
+        # weight: 6
         - name: Tags
           url: tags/
           weight: 7
@@ -98,14 +98,14 @@ params:
             #   url: data/
             # - name: Books
             #   url: books/
-            # - name: Courses
-            #   url: courses/
+            - name: Courses
+              url: courses/
             - name: Tags
               url: tags/
             - name: Archive
               url: archive/
-            - name: News
-              url: news/
+            # - name: News
+            #   url: news/
 
     socialIcons:
         - name: CV
