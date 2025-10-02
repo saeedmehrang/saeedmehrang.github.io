@@ -267,6 +267,235 @@ class GroupedQueryAttention(nn.Module):
         return output
 ```
 
+
+## Practical Demonstration with Code
+
+Let's run both implementations with concrete examples to see how they work in practice:
+
+```python
+import torch
+import torch.nn as nn
+import math
+
+# Set random seed for reproducibility
+torch.manual_seed(42)
+
+# Configuration
+batch_size = 2
+seq_len = 10
+d_model = 512
+num_query_heads = 32
+num_kv_heads = 8
+
+# Create random input
+x = torch.randn(batch_size, seq_len, d_model)
+
+print("=" * 70)
+print("INPUT CONFIGURATION")
+print("=" * 70)
+print(f"Input shape: {x.shape}")
+print(f"  - Batch size: {batch_size}")
+print(f"  - Sequence length: {seq_len}")
+print(f"  - Model dimension (d_model): {d_model}")
+print()
+
+# ============================================================================
+# Multi-Head Attention Example
+# ============================================================================
+print("=" * 70)
+print("MULTI-HEAD ATTENTION")
+print("=" * 70)
+
+mha = MultiHeadAttention(d_model=d_model, num_heads=num_query_heads)
+mha_output = mha(x)
+
+print(f"Number of heads: {mha.num_heads}")
+print(f"Head dimension: {mha.head_dim}")
+print()
+print("Weight matrices:")
+print(f"  Q projection: {d_model} → {d_model}")
+print(f"  K projection: {d_model} → {d_model}")
+print(f"  V projection: {d_model} → {d_model}")
+print()
+print("After projection and reshaping:")
+print(f"  Q shape: (batch={batch_size}, heads={num_query_heads}, seq={seq_len}, head_dim={mha.head_dim})")
+print(f"  K shape: (batch={batch_size}, heads={num_query_heads}, seq={seq_len}, head_dim={mha.head_dim})")
+print(f"  V shape: (batch={batch_size}, heads={num_query_heads}, seq={seq_len}, head_dim={mha.head_dim})")
+print()
+print(f"Output shape: {mha_output.shape}")
+print()
+
+# Calculate KV cache size for MHA
+kv_cache_mha = num_query_heads * mha.head_dim * seq_len * 2  # *2 for K and V
+print(f"KV cache size per sample: {kv_cache_mha:,} elements")
+print()
+
+# ============================================================================
+# Grouped-Query Attention Example
+# ============================================================================
+print("=" * 70)
+print("GROUPED-QUERY ATTENTION")
+print("=" * 70)
+
+gqa = GroupedQueryAttention(d_model=d_model, num_query_heads=num_query_heads, num_kv_heads=num_kv_heads)
+gqa_output = gqa(x)
+
+print(f"Number of query heads: {gqa.num_query_heads}")
+print(f"Number of KV heads: {gqa.num_kv_heads}")
+print(f"Queries per KV head: {gqa.num_queries_per_kv}")
+print(f"Head dimension: {gqa.head_dim}")
+print()
+print("Weight matrices:")
+print(f"  Q projection: {d_model} → {d_model}")
+print(f"  K projection: {d_model} → {gqa.kv_dim} (smaller!)")
+print(f"  V projection: {d_model} → {gqa.kv_dim} (smaller!)")
+print()
+print("After projection and reshaping:")
+print(f"  Q shape: (batch={batch_size}, heads={num_query_heads}, seq={seq_len}, head_dim={gqa.head_dim})")
+print(f"  K shape: (batch={batch_size}, heads={num_kv_heads}, seq={seq_len}, head_dim={gqa.head_dim}) [before repeat]")
+print(f"  V shape: (batch={batch_size}, heads={num_kv_heads}, seq={seq_len}, head_dim={gqa.head_dim}) [before repeat]")
+print()
+print("After repeat_interleave (to match Q heads):")
+print(f"  K shape: (batch={batch_size}, heads={num_query_heads}, seq={seq_len}, head_dim={gqa.head_dim})")
+print(f"  V shape: (batch={batch_size}, heads={num_query_heads}, seq={seq_len}, head_dim={gqa.head_dim})")
+print()
+print(f"Output shape: {gqa_output.shape}")
+print()
+
+# Calculate KV cache size for GQA
+kv_cache_gqa = num_kv_heads * gqa.head_dim * seq_len * 2  # *2 for K and V
+print(f"KV cache size per sample: {kv_cache_gqa:,} elements")
+print()
+
+# ============================================================================
+# Comparison
+# ============================================================================
+print("=" * 70)
+print("COMPARISON")
+print("=" * 70)
+print(f"MHA KV cache: {kv_cache_mha:,} elements")
+print(f"GQA KV cache: {kv_cache_gqa:,} elements")
+print(f"Memory reduction: {kv_cache_mha / kv_cache_gqa:.1f}x")
+print()
+print(f"MHA output shape: {mha_output.shape}")
+print(f"GQA output shape: {gqa_output.shape}")
+print()
+print("✓ Both produce the same output shape!")
+print()
+
+# ============================================================================
+# Visualizing the grouping
+# ============================================================================
+print("=" * 70)
+print("QUERY HEAD GROUPING IN GQA")
+print("=" * 70)
+print(f"With {num_query_heads} query heads and {num_kv_heads} KV heads:")
+print()
+for kv_head in range(num_kv_heads):
+    start_q = kv_head * gqa.num_queries_per_kv
+    end_q = start_q + gqa.num_queries_per_kv - 1
+    print(f"  KV head {kv_head} is shared by query heads {start_q}-{end_q}")
+print()
+print("=" * 70)
+```
+
+**Expected Output:**
+
+```
+======================================================================
+INPUT CONFIGURATION
+======================================================================
+Input shape: torch.Size([2, 10, 512])
+  - Batch size: 2
+  - Sequence length: 10
+  - Model dimension (d_model): 512
+
+======================================================================
+MULTI-HEAD ATTENTION
+======================================================================
+Number of heads: 32
+Head dimension: 16
+
+Weight matrices:
+  Q projection: 512 → 512
+  K projection: 512 → 512
+  V projection: 512 → 512
+
+After projection and reshaping:
+  Q shape: (batch=2, heads=32, seq=10, head_dim=16)
+  K shape: (batch=2, heads=32, seq=10, head_dim=16)
+  V shape: (batch=2, heads=32, seq=10, head_dim=16)
+
+Output shape: torch.Size([2, 10, 512])
+
+KV cache size per sample: 10,240 elements
+
+======================================================================
+GROUPED-QUERY ATTENTION
+======================================================================
+Number of query heads: 32
+Number of KV heads: 8
+Queries per KV head: 4
+Head dimension: 16
+
+Weight matrices:
+  Q projection: 512 → 512
+  K projection: 512 → 128 (smaller!)
+  V projection: 512 → 128 (smaller!)
+
+After projection and reshaping:
+  Q shape: (batch=2, heads=32, seq=10, head_dim=16)
+  K shape: (batch=2, heads=8, seq=10, head_dim=16) [before repeat]
+  V shape: (batch=2, heads=8, seq=10, head_dim=16) [before repeat]
+
+After repeat_interleave (to match Q heads):
+  K shape: (batch=2, heads=32, seq=10, head_dim=16)
+  V shape: (batch=2, heads=32, seq=10, head_dim=16)
+
+Output shape: torch.Size([2, 10, 512])
+
+KV cache size per sample: 2,560 elements
+
+======================================================================
+COMPARISON
+======================================================================
+MHA KV cache: 10,240 elements
+GQA KV cache: 2,560 elements
+Memory reduction: 4.0x
+
+MHA output shape: torch.Size([2, 10, 512])
+GQA output shape: torch.Size([2, 10, 512])
+
+✓ Both produce the same output shape!
+
+======================================================================
+QUERY HEAD GROUPING IN GQA
+======================================================================
+With 32 query heads and 8 KV heads:
+
+  KV head 0 is shared by query heads 0-3
+  KV head 1 is shared by query heads 4-7
+  KV head 2 is shared by query heads 8-11
+  KV head 3 is shared by query heads 12-15
+  KV head 4 is shared by query heads 16-19
+  KV head 5 is shared by query heads 20-23
+  KV head 6 is shared by query heads 24-27
+  KV head 7 is shared by query heads 28-31
+
+======================================================================
+```
+
+This demonstration shows several key insights:
+
+1. **Same output dimensions**: Both MHA and GQA produce outputs of the same shape `(batch_size, seq_len, d_model)`, making them drop-in replacements for each other.
+
+2. **Projection size difference**: GQA's K and V projections are 4x smaller (128 vs 512 dimensions), directly corresponding to the 4x reduction in KV heads (8 vs 32).
+
+3. **Memory savings**: The KV cache for GQA is 4x smaller (2,560 vs 10,240 elements per sample), which scales significantly with longer sequences and more layers.
+
+4. **Query head grouping**: The visualization shows how each KV head is shared among multiple query heads, creating the "grouped" aspect of GQA.
+
+
 ## Side-by-Side Comparison
 
 Let's compare the two implementations directly:
