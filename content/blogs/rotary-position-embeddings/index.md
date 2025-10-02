@@ -1,7 +1,7 @@
 ---
 title: "Understanding Rotary Position Embeddings (RoPE): A Visual Guide"
 date: 2025-10-02
-tags: ["machine learning", "transformers", "LLM", "deep learning", "attention mechanism"]
+tags: [ "transformers", "LLM", "multihead attention", "positional encoding"]
 author: "Saeed Mehrang"
 description: "A comprehensive visual guide to understanding Rotary Position Embeddings (RoPE) used in modern language models like LLaMA and GPT."
 summary: "This blog post explains RoPE in simple terms, showing how it differs from sinusoidal embeddings and why it's become the standard for modern language models."
