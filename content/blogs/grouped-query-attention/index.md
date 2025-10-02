@@ -14,6 +14,8 @@ disableAnchoredHeadings: false
 
 ---
 
+This is a blog post as part of my perosnal LLM learning and knowledge refreshing. I hope other readers find it useful as well.
+
 # In a Nutshell
 
 The image below (borrowed from [IBM's blog post on GQA](https://www.ibm.com/think/topics/grouped-query-attention)) schematically illustrates how Grouped-Query Attention differes from the vanila Multi-Head Attention.
