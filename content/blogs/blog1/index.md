@@ -1,8 +1,22 @@
-# Understanding Rotary Position Embeddings (RoPE): A Visual Guide
+---
+title: "Understanding Rotary Position Embeddings (RoPE): A Visual Guide"
+date: 2024-10-02
+tags: ["machine learning", "transformers", "LLM", "deep learning", "attention mechanism"]
+author: "Saeed Mehrang"
+description: "A comprehensive visual guide to understanding Rotary Position Embeddings (RoPE) used in modern language models like LLaMA and GPT."
+summary: "This blog post explains RoPE in simple terms, showing how it differs from sinusoidal embeddings and why it's become the standard for modern language models."
+cover:
+    image: "rope_vs_sinusoid.png"
+    alt: "RoPE vs Sinusoidal Embeddings"
+    relative: true
+showToc: true
+disableAnchoredHeadings: false
 
-This is a blog post as part of my perosnal LLM learning and knowledge refreshing. I hope other readers find it useful as well. The code in this blog is a simplified version for educational purposes. For a more optimized and production ready code, see https://meta-pytorch.org/torchtune/stable/_modules/torchtune/modules/position_embeddings.html
+---
 
 ## Introduction
+
+This is a blog post as part of my personal LLM learning and knowledge refreshing. I hope other readers find it useful as well. The code in this blog is a simplified version for educational purposes. For a more optimized and production ready code, see https://meta-pytorch.org/torchtune/stable/_modules/torchtune/modules/position_embeddings.html
 
 If you are learning about modern language models like LLaMA or GPT, you probably heard about something called RoPE. RoPE stands for **Rotary Position Embedding**. It is a way to help the model understand the position of words in a sentence.
 

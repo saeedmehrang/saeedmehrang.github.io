@@ -19,16 +19,19 @@ menu:
     main:
         # - name: Books
         #   url: books/
-        #   weight: 5 
+        #   weight: 5
         - name: Papers
           url: papers/
           weight: 2
         - name: Courses
           url: courses/
           weight: 3
+        - name: Blogs
+          url: blogs/
+          weight: 4
         # - name: Data
         #   url: data/
-        #   weight: 4 
+        #   weight: 5
         # - name: News
         #   url: news/
         # weight: 6
@@ -100,6 +103,8 @@ params:
             #   url: books/
             - name: Courses
               url: courses/
+            - name: Blogs
+              url: blogs/
             - name: Tags
               url: tags/
             - name: Archive
