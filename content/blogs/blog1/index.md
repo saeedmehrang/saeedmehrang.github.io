@@ -1,6 +1,6 @@
 ---
 title: "Understanding Rotary Position Embeddings (RoPE): A Visual Guide"
-date: 2024-10-02
+date: 2025-10-02
 tags: ["machine learning", "transformers", "LLM", "deep learning", "attention mechanism"]
 author: "Saeed Mehrang"
 description: "A comprehensive visual guide to understanding Rotary Position Embeddings (RoPE) used in modern language models like LLaMA and GPT."
@@ -252,8 +252,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-{{< figure src="rope_vs_sinusoid.png" alt="rope_vs_sinusoid" caption="RoPE vs. Sinusoid" >}}
-
+![Rope vs. Sinusoid](rope_vs_sinusoid.png)
 
 
 **Left plot (Sinusoidal)**: Each position has its own unique pattern. These patterns are added to the input.
@@ -307,7 +306,7 @@ print(f"Score at position 5 (distance=5): {attention_pattern[5]:.3f}")
 print(f"Score at position 10 (distance=10): {attention_pattern[10]:.3f}")
 ```
 
-[**INSERT fig HERE: **]
+![rope attention pattern](rope_attention_pattern.png)
 
 ### What This Shows
 
@@ -519,6 +518,8 @@ plt.suptitle('RoPE: Rotary Position Embeddings Visualization\n' +
 
 HTML(anim.to_jshtml())
 ```
+
+![Rope Animation](rope_animation.gif)
 
 
 ## Key Differences: Sinusoidal vs RoPE

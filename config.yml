@@ -23,9 +23,9 @@ menu:
         - name: Papers
           url: papers/
           weight: 2
-        - name: Courses
-          url: courses/
-          weight: 3
+        # - name: Courses
+        #   url: courses/
+        #   weight: 3
         - name: Blogs
           url: blogs/
           weight: 4
@@ -101,8 +101,8 @@ params:
             #   url: data/
             # - name: Books
             #   url: books/
-            - name: Courses
-              url: courses/
+            # - name: Courses
+            #   url: courses/
             - name: Blogs
               url: blogs/
             - name: Tags
