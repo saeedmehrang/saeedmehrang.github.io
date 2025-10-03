@@ -15,9 +15,21 @@ disableAnchoredHeadings: false
 
 ## I. Introduction
 
-In my last blog post, "From Correlation to Causation: Humanity's Timeless Quest to Understand 'Why'", I explored how humans have always tried to understand "why" things happen. We want to know about cause and effect, not just things that happen together (correlation). This quest is essential for everything—from making better decisions in medicine and policy to building truly intelligent AI systems.
+In my [last blog post](https://saeedmehrang.github.io/blogs/correlation-to-causation/), "From Correlation to Causation: Humanity's Timeless Quest to Understand 'Why'", I explored how humans have always tried to understand "why" things happen. We want to know about cause and effect, not just things that happen together (correlation). This quest is essential for everything—from making better decisions in medicine and policy to building truly intelligent AI systems.
 
-In this blog post, I'm introducing a powerful tool for thinking about cause and effect: **DAGs (Directed Acyclic Graphs)**. Think of DAGs like roadmaps. But instead of showing you how to get to a place, they show you how causes lead to effects. They are visual roadmaps for understanding causality.
+But how do we figure out cause and effect when we can't run experiments? When we can't do a clinical trial or an A/B test, we need a different approach. This is where **DAGs (Directed Acyclic Graphs)** become very useful. DAGs help us write down everything we know about a problem—all our assumptions about what causes what.
+
+DAGs serve two important purposes:
+
+First, they help experts **communicate and discuss** the problem. By drawing a DAG, everyone can see the assumptions clearly and agree on them. Once everyone is on the same page, we can identify which variables to include in our analysis (the "adjustment set" or confounders). Sometimes, a simple statistical model like logistic regression is all we need afterwards!
+
+Second, DAGs can guide us in building more complex models like Bayesian Networks or Graphical Causal Models. These models can do causal inference, probability calculations, and predictions. The DAG provides the structure for these models.
+
+Once you have a DAG, it becomes a powerful tool for figuring out **how** to estimate causal effects. Different patterns in your DAG tell you which method to use. The most common approach is called **backdoor adjustment**—this is when you identify and control for confounders (variables that affect both cause and effect) to "block" the non-causal paths between them. Think of these as back routes that create fake correlations. By closing these backdoor paths through statistical adjustment, you isolate the true causal effect. In many cases, this is all you need!
+
+But what if you have unmeasured confounders you can't control for? DAGs help here too. If you have an **instrumental variable** (a variable that affects the cause but only influences the effect through the cause), you can use IV methods instead. If you can identify a **mediator** (a variable sitting between cause and effect), you might be able to use **front-door adjustment** even when confounders are unmeasured. The beautiful thing about DAGs is that they show you exactly which method will work for your specific problem. By looking at the structure of your DAG, you can determine whether your causal effect is even identifiable—and if it is, which statistical approach to use. We'll explore these concepts more in future posts, but for now, let's focus on understanding what DAGs are and how to build them.
+
+Think of DAGs like roadmaps. But instead of showing you how to get to a place, they show you how causes lead to effects. They are visual roadmaps for understanding causality.
 
 This post will make DAGs easy to understand. We'll see what they are, how to read them, and how you can use them to think more clearly about cause and effect in your own work.
 
@@ -60,29 +72,23 @@ A **path** is like following the arrows. Imagine you are walking along the arrow
 
 - **Indirect Effect:** A → C → B. This is an indirect cause. A causes C, and then C causes B. So, A influences B through C. Think about it like this: Exercise → Fitness → Health. Exercise makes you fitter, and being fit makes you healthier. Exercise has an indirect effect on health through fitness.
 
-### Example 1: The Ice Cream and Heatstroke DAG
+### Example 1: The Ice Cream and Shark Attacks DAG
 
-Remember the example from my last post: Ice cream sales and heatstroke both go up on hot days. But ice cream does not cause heatstroke! The real cause is the heat.
+Remember a classic spurious correlation example: Ice cream sales and shark attacks both go up during summer months. But ice cream does not cause shark attacks! The real cause is warm weather.
 
 Let's draw a DAG for this. We have these variables:
-- **H = Heat** (Temperature)
+- **W = Warm Weather** (Temperature)
 - **I = Ice Cream Sales**
-- **S = Heatstroke Cases**
+- **S = Shark Attacks**
 
 What are the causal relationships?
-- Hot weather (H) makes people buy more ice cream (I). So, **H → I**.
-- Hot weather (H) also causes more cases of heatstroke (S). So, **H → S**.
-- Does ice cream (I) directly cause heatstroke (S) or vice versa? No to both. So, **no arrow between I and S**.
+- Warm weather (W) makes people buy more ice cream (I). So, **W → I**.
+- Warm weather (W) also brings more people to the beach, leading to more shark attacks (S). So, **W → S**.
+- Does ice cream (I) directly cause shark attacks (S) or vice versa? No to both. So, **no arrow between I and S**.
 
 Here's the Python code to create this DAG:
 
 ```python
-# Install these libraries in a virtual env
-# I recommend 'uv' for this: https://github.com/astral-sh/uv
-# Create env: uv venv --python 3.12
-# Activate it: source .venv/bin/activate (on Mac/Linux) or .venv\Scripts\activate (on Windows)
-# Install dependencies: uv pip install networkx matplotlib
-
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -90,10 +96,10 @@ import matplotlib.pyplot as plt
 G_icecream = nx.DiGraph()
 
 # Add nodes
-G_icecream.add_nodes_from(["Heat", "Ice Cream Sales", "Heatstroke"])
+G_icecream.add_nodes_from(["Warm Weather", "Ice Cream Sales", "Shark Attacks"])
 
 # Add edges representing causal relationships
-G_icecream.add_edges_from([("Heat", "Ice Cream Sales"), ("Heat", "Heatstroke")])
+G_icecream.add_edges_from([("Warm Weather", "Ice Cream Sales"), ("Warm Weather", "Shark Attacks")])
 
 # Layout for better visualization
 pos_icecream = nx.spring_layout(G_icecream, seed=42)
@@ -103,20 +109,17 @@ plt.figure(figsize=(10, 6))
 nx.draw(G_icecream, pos_icecream, with_labels=True, node_size=4000, 
         node_color="skyblue", font_size=12, font_weight="bold", 
         arrowsize=25, edge_color="gray", linewidths=2)
-plt.title("Ice Cream and Heatstroke DAG", fontsize=16, fontweight="bold")
+plt.title("Ice Cream and Shark Attacks DAG", fontsize=16, fontweight="bold")
 plt.axis('off')
 plt.tight_layout()
 plt.show()
 ```
 
 **Output:**
-```
-[Displays a graph with three nodes: "Heat" at the top, with arrows pointing down to 
-"Ice Cream Sales" on the left and "Heatstroke" on the right. No connection between 
-Ice Cream Sales and Heatstroke.]
-```
 
-Look at this DAG. "Heat" (H) has arrows pointing to both "Ice Cream Sales" (I) and "Heatstroke" (S). This shows that heat is a **common cause** for both. There is no arrow between "Ice Cream Sales" and "Heatstroke". This visually tells us that eating ice cream is not a direct cause of heatstroke. The reason they are correlated is because of the common cause—the heat.
+![Dag Simple](dag-simple.png)
+
+Look at this DAG. "Warm Weather" (W) has arrows pointing to both "Ice Cream Sales" (I) and "Shark Attacks" (S). This shows that warm weather is a common cause for both. There is no arrow between "Ice Cream Sales" and "Shark Attacks". This visually tells us that eating ice cream is not a direct cause of shark attacks. The reason they are correlated is because of the common cause—warm weather bringing people to beaches and ice cream shops simultaneously. The implication of this is that an intervention on Ice Cream Sales will not affect the number of Shark Attacks. This sounds obvious to us humans! but there are complex scenarios where without drawing a DAG we may make a false assumption about the causal structure of the probem and as a result design a study where we intervene on the wrong variable that has no causal path to the outcome variable!
 
 ## IV. Building Your Own DAG: A Purposeful Approach for Causal Inference
 
@@ -145,7 +148,8 @@ Think about variables that could influence both your possible "cause" and your "
 
 ### Step 4: Consider Instrumental Variables (if applicable)
 
-If you're thinking about using special methods like "instrumental variables" (a topic for another post!), think about whether you have any instrumental variables and include them.
+An instrumental variable (IV) is a special variable in causal inference that helps estimate causal effects when confounding is present. In a DAG, an IV is a variable that affects the exposure (treatment) but only influences the outcome through that exposure—not directly or through any other path. Think of it like this: IV → Exposure → Outcome, with no backdoor paths from IV to Outcome. For example, distance to a hospital might be an IV for studying the effect of medical treatment on health—it affects whether someone receives treatment but doesn't directly affect health outcomes except through treatment receipt.
+
 
 ### Step 5: Decide on Mediators (Context-Dependent)
 
@@ -169,7 +173,7 @@ Make sure there are no cycles! No loops going back in your DAG. You can do this 
 
 Look at your DAG. Is it too complicated? Are there variables that aren't really important for your question or for understanding possible biases like confounding? Try to make it simpler and clearer. 
 
-You don't need to put every single detail in your DAG. Focus on what's important for answering your causal question and for dealing with potential confounding.
+You don't need to put every single detail in your DAG. Focus on what's important for answering your causal question and for dealing with potential confounding. Keep it as minimal as possible, only add nodes that are important with this order of priority, both measured and unmeasured confounders, mediators if there is an unmeasured confounder preventing the backdoor adjustment, and lastly instrumental variables.
 
 ### Example 2: Studying and Grades DAG
 
@@ -225,12 +229,8 @@ print(f"Is this a valid DAG? {nx.is_directed_acyclic_graph(G_grades)}")
 ```
 
 **Output:**
-```
-[Displays a graph with "Prior Knowledge" and "Motivation" nodes with arrows pointing 
-to both "Study Time" and "Grades" nodes. Also shows arrow from "Study Time" to "Grades".]
 
-Is this a valid DAG? True
-```
+![DAG Simple Grades](dag-simple-grades.png)
 
 Look at this DAG. "Prior Knowledge" (P) and "Motivation" (M) both have arrows pointing to "Study Time" (S) and "Grades" (G). This shows they are **potential confounders**. They can affect both study time and grades. The arrow from "Study Time" (S) to "Grades" (G) represents the causal effect we want to understand. 
 
@@ -288,10 +288,10 @@ plt.show()
 ```
 
 **Output:**
-```
-[Displays a graph with "Wealth" node with arrows pointing to both "Parks" and "Health" nodes. 
-No direct arrow between "Parks" and "Health" in this simplified version.]
-```
+
+![DAG Simple Wealth](dag-simple-wealth.png)
+
+Displays a graph with "Wealth" node with arrows pointing to both "Parks" and "Health" nodes. No direct arrow between "Parks" and "Health" in this simplified version.
 
 In this DAG, "Wealth" (W) is a **confounder**. It causes both "Parks" (P) and "Health" (H). The correlation we see between parks and health might be partly (or entirely) because of wealth, not because parks directly cause better health. DAGs help us see these confounding pathways clearly.
 
@@ -327,7 +327,7 @@ Think about our Ice Cream and Heatstroke example again. If our question is "Does
 
 It's important to remember: **DAGs are models. They are not perfect pictures of reality.** They are based on your assumptions. If your assumptions are wrong, your DAG will be wrong, and you might draw wrong conclusions.
 
-DAGs are **simplifications**. Real life is very complex. DAGs cannot show every single detail. Also, sometimes different DAG structures can look the same from just data alone (this is called **Markov Equivalence**—I mentioned this in my previous post, and it's a topic for another day!).
+DAGs are **simplifications**. Real life is very complex. DAGs do NOT need to show every single detail if they are use for measuing causal effects (though, there are cases where you would need to add as much details to the DAG, and that is when you want to make highly accurate probabilistic inferences or prediction, which is different from causal effect estimation!). Also, sometimes different DAG structures can look the same from just data alone (this is called **Markov Equivalence**—I mentioned this in my previous post, and it's a topic for another day!).
 
 This is why domain knowledge is so important. The quality of your causal conclusions depends on the quality of your DAG, which depends on your understanding of the system you're studying.
 
@@ -352,6 +352,8 @@ In future posts, we'll see how to use DAGs for even more powerful causal inferen
 - Different types of biases (selection bias, collider bias)
 - More advanced concepts like front-door and back-door adjustment
 - How to use DAGs with modern machine learning methods
+
+In future blog posts, I'll introduce you to **DoWhy**, a powerful Python library developed by Microsoft Research for causal inference. DoWhy takes the concepts we're learning—DAGs, confounders, and causal effects—and makes them practical and code-based. With DoWhy, you can encode your DAG, automatically identify the right adjustment sets, choose the best estimation method, and even validate your results through sensitivity analysis. It bridges the gap between drawing a DAG and actually computing causal effects from your data. DoWhy also works seamlessly with EconML (another Microsoft library for causal machine learning), making it possible to use advanced methods like double machine learning and causal forests. Whether you're analyzing medical data, business metrics, or policy impacts, DoWhy provides a structured workflow that ensures you're thinking causally every step of the way. Stay tuned for hands-on tutorials where we'll use DoWhy to turn the DAGs we draw into real causal insights!
 
 ## IX. References and Further Learning
 
