@@ -1,7 +1,7 @@
 ---
 title: "DAGs: Your Visual Roadmap to Understanding Cause and Effect"
 date: 2025-10-02
-tags: ["Causal Inference", "DAGs", "Directed Acyclic Graphs", "Causality", "Data Science", "Confounding"]
+tags: ["Causal Inference", "Directed Acyclic Graphs"]
 author: "Saeed Mehrang"
 description: "A practical introduction to Directed Acyclic Graphs (DAGs) - the essential visual tool for thinking clearly about cause and effect relationships in data science and causal inference."
 summary: "Learn how to use DAGs (Directed Acyclic Graphs) as visual roadmaps for understanding causality. This post explains what DAGs are, how to read them, build them, and use them to spot confounding - with practical Python examples."
