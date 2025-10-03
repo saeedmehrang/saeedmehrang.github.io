@@ -6,7 +6,7 @@ author: "Saeed Mehrang"
 description: "A practical introduction to Directed Acyclic Graphs (DAGs) - the essential visual tool for thinking clearly about cause and effect relationships in data science and causal inference."
 summary: "Learn how to use DAGs (Directed Acyclic Graphs) as visual roadmaps for understanding causality. This post explains what DAGs are, how to read them, build them, and use them to spot confounding - with practical Python examples."
 cover:
-    image: "dags-causality.png"
+    image: "dag-simple.png"
     alt: "Directed Acyclic Graph showing nodes and arrows representing causal relationships"
     relative: true
 showToc: true
