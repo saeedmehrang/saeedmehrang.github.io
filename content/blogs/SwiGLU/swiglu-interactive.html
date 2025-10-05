@@ -1,0 +1,395 @@
+
+<style>
+    .swiglu-container {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+    }
+    
+    .swiglu-inner {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    
+    .swiglu-title {
+        color: #2d3748;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    .swiglu-subtitle {
+        text-align: center;
+        color: #718096;
+        margin-bottom: 30px;
+    }
+    
+    .swiglu-controls {
+        background: #f7fafc;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        border: 2px solid #e2e8f0;
+    }
+    
+    .swiglu-control-group {
+        margin-bottom: 20px;
+    }
+    
+    .swiglu-controls label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .swiglu-controls input[type="range"] {
+        width: 100%;
+        height: 8px;
+        border-radius: 5px;
+        background: #cbd5e0;
+        outline: none;
+        -webkit-appearance: none;
+    }
+    
+    .swiglu-controls input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #667eea;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .swiglu-controls input[type="range"]::-webkit-slider-thumb:hover {
+        background: #764ba2;
+        transform: scale(1.2);
+    }
+    
+    .swiglu-controls input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #667eea;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .swiglu-value-display {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    .swiglu-chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 30px;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+    }
+    
+    .swiglu-info-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    
+    .swiglu-info-box h3 {
+        margin-top: 0;
+        border-bottom: 2px solid rgba(255,255,255,0.3);
+        padding-bottom: 10px;
+    }
+    
+    .swiglu-equation {
+        background: rgba(255,255,255,0.1);
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        margin: 10px 0;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .swiglu-comparison-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .swiglu-comparison-card {
+        background: rgba(255,255,255,0.1);
+        padding: 15px;
+        border-radius: 8px;
+        border: 2px solid rgba(255,255,255,0.2);
+    }
+    
+    .swiglu-comparison-card h4 {
+        margin-top: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.3);
+        padding-bottom: 8px;
+    }
+</style>
+
+<div class="swiglu-container">
+    <div class="swiglu-inner">
+        <h1 class="swiglu-title">🧠 Interactive SwiGLU Explorer</h1>
+        <p class="swiglu-subtitle">Explore how different activation functions behave and understand SwiGLU's gating mechanism</p>
+        <div class="swiglu-controls">
+            <h3>🎛️ Controls</h3>
+            <div class="swiglu-control-group">
+                <label>
+                    Input Value (x): 
+                    <span class="swiglu-value-display" id="xValue">0.00</span>
+                </label>
+                <input type="range" id="xSlider" min="-5" max="5" step="0.1" value="0">
+            </div>
+            <div class="swiglu-control-group">
+                <label>
+                    Swish Beta (β): 
+                    <span class="swiglu-value-display" id="betaValue">1.00</span>
+                </label>
+                <input type="range" id="betaSlider" min="0.1" max="3" step="0.1" value="1">
+            </div>
+            <div class="swiglu-control-group">
+                <label>
+                    Gate Weight (simulated): 
+                    <span class="swiglu-value-display" id="gateValue">1.00</span>
+                </label>
+                <input type="range" id="gateSlider" min="0" max="2" step="0.1" value="1">
+            </div>
+        </div>
+        <div class="swiglu-chart-container">
+            <canvas id="activationChart"></canvas>
+        </div>
+        <div class="swiglu-info-box">
+            <h3>📊 Current Values at x = <span id="currentX">0.00</span></h3>
+            <div class="swiglu-comparison-grid">
+                <div class="swiglu-comparison-card">
+                    <h4>ReLU</h4>
+                    <div class="swiglu-equation" id="reluValue">0.00</div>
+                </div>
+                <div class="swiglu-comparison-card">
+                    <h4>Swish (SiLU)</h4>
+                    <div class="swiglu-equation" id="swishValue">0.00</div>
+                </div>
+                <div class="swiglu-comparison-card">
+                    <h4>SwiGLU Output</h4>
+                    <div class="swiglu-equation" id="swigluValue">0.00</div>
+                </div>
+            </div>
+            <h3 style="margin-top: 30px;">🔬 SwiGLU Formula</h3>
+            <div class="swiglu-equation">
+                SwiGLU(x) = Swish(xW) ⊗ (xV)
+            </div>
+            <div class="swiglu-equation">
+                where Swish(x) = x · σ(βx)
+            </div>
+            <p style="margin-top: 15px; opacity: 0.9;">
+                The ⊗ symbol represents element-wise multiplication (gating). 
+                The gate component Swish(xW) controls how much of the linear component (xV) passes through.
+            </p>
+        </div>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+    // Activation functions
+    function relu(x) {
+        return Math.max(0, x);
+    }
+    function swish(x, beta = 1) {
+        return x / (1 + Math.exp(-beta * x));
+    }
+    function swiglu(x, beta, gateWeight) {
+        const gate = swish(x * gateWeight, beta);
+        const linear = x;
+        return gate * linear;
+    }
+    // Generate data points
+    function generateData(beta, gateWeight) {
+        const data = [];
+        for (let x = -5; x <= 5; x += 0.1) {
+            data.push({
+                x: x,
+                relu: relu(x),
+                swish: swish(x, beta),
+                swiglu: swiglu(x, beta, gateWeight)
+            });
+        }
+        return data;
+    }
+    // Initialize chart
+    const ctx = document.getElementById('activationChart').getContext('2d');
+    let chart;
+    function createChart(beta, gateWeight) {
+        const data = generateData(beta, gateWeight);
+        if (chart) {
+            chart.destroy();
+        }
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d.x.toFixed(1)),
+                datasets: [
+                    {
+                        label: 'ReLU',
+                        data: data.map(d => d.relu),
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0
+                    },
+                    {
+                        label: 'Swish/SiLU',
+                        data: data.map(d => d.swish),
+                        borderColor: '#48dbfb',
+                        backgroundColor: 'rgba(72, 219, 251, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'SwiGLU',
+                        data: data.map(d => d.swiglu),
+                        borderColor: '#1dd1a1',
+                        backgroundColor: 'rgba(29, 209, 161, 0.1)',
+                        borderWidth: 4,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        borderDash: [5, 5]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            title: function(context) {
+                                return 'x = ' + context[0].label;
+                            },
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(3);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Input Value (x)',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: function(value, index) {
+                                return index % 10 === 0 ? this.getLabelForValue(value) : '';
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Activation Output',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    // Update function values at specific x
+    function updateValues(x, beta, gateWeight) {
+        document.getElementById('currentX').textContent = x.toFixed(2);
+        document.getElementById('reluValue').textContent = relu(x).toFixed(4);
+        document.getElementById('swishValue').textContent = swish(x, beta).toFixed(4);
+        document.getElementById('swigluValue').textContent = swiglu(x, beta, gateWeight).toFixed(4);
+    }
+    // Event listeners
+    const xSlider = document.getElementById('xSlider');
+    const betaSlider = document.getElementById('betaSlider');
+    const gateSlider = document.getElementById('gateSlider');
+    xSlider.addEventListener('input', function() {
+        const x = parseFloat(this.value);
+        const beta = parseFloat(betaSlider.value);
+        const gateWeight = parseFloat(gateSlider.value);
+        document.getElementById('xValue').textContent = x.toFixed(2);
+        updateValues(x, beta, gateWeight);
+    });
+    betaSlider.addEventListener('input', function() {
+        const beta = parseFloat(this.value);
+        const gateWeight = parseFloat(gateSlider.value);
+        const x = parseFloat(xSlider.value);
+        document.getElementById('betaValue').textContent = beta.toFixed(2);
+        createChart(beta, gateWeight);
+        updateValues(x, beta, gateWeight);
+    });
+    gateSlider.addEventListener('input', function() {
+        const gateWeight = parseFloat(this.value);
+        const beta = parseFloat(betaSlider.value);
+        const x = parseFloat(xSlider.value);
+        document.getElementById('gateValue').textContent = gateWeight.toFixed(2);
+        createChart(beta, gateWeight);
+        updateValues(x, beta, gateWeight);
+    });
+    // Initialize
+    createChart(1, 1);
+    updateValues(0, 1, 1);
+</script>

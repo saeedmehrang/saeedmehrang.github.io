@@ -154,8 +154,8 @@ params:
 
 markup:
     goldmark:
-        renderer:
-            unsafe: true
+      renderer:
+        unsafe: true
     highlight:
         guessSyntax: true
         style: autumn 
