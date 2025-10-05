@@ -83,129 +83,231 @@ Instead of recomputing K and V for all tokens at each step, we:
 
 This reduces complexity from **O(n²) to O(n)** - a massive improvement!
 
-## Interactive Visualization
+## Interactive Visualization of Memory Accumulation
 
-To better understand how KV-caching works in practice, I've created an interactive visualization that shows the generation process step-by-step. Click "Start Prefill Phase" to see how the model first processes the entire prompt and populates the initial cache. Then watch as the model generates tokens one at a time, with the cache growing incrementally at each step.
-
-{{< include-html "static/interactive/kv-cache-viz.html" >}}
+To better understand how memory accumulation in KV-caching works in practice, I've created an interactive visualization that shows the generation process step-by-step. Click "Start Prefill Phase" to see how the model first processes the entire prompt and populates the initial cache. Then watch as the model generates tokens one at a time, with the cache growing incrementally at each step.
 
 The visualization clearly demonstrates the two-phase nature of KV-cached generation: the **prefill phase** where we process all prompt tokens at once, and the **generation phase** where we process one token at a time while reusing cached computations.
 
 
+{{< include-html "kv_cache_viz.html" >}}
+
+
 ## Implementation Details
+
+Understanding how KV-caching is implemented reveals both its elegance and its practical considerations. Let's walk through the complete implementation from data structures to the two-phase generation process.
 
 ### Cache Structure
 
-The cache stores tensors for each layer in the model:
+At its core, the KV-cache is a straightforward data structure that stores Key and Value tensors for each layer in the transformer. The cache is organized as a list of dictionaries, with one entry per layer:
 
 ```python
-kv_cache = {
-    layer_idx: {
-        'keys': Tensor[batch, num_heads, seq_len, head_dim],
-        'values': Tensor[batch, num_heads, seq_len, head_dim]
-    }
+# Model configuration
+config = {
+    'num_layers': L,           # Number of transformer layers
+    'num_heads': H,            # Number of attention heads
+    'head_dim': D_h,           # Dimension per head
+    'hidden_dim': D_model      # Total model dimension
 }
+
+# Initialize empty cache structure (one entry per layer)
+kv_cache = [
+    {
+        'keys': None,     # Shape: [batch, num_heads, seq_len, head_dim]
+        'values': None,   # Shape: [batch, num_heads, seq_len, head_dim]
+    }
+    for _ in range(config['num_layers'])
+]
 ```
+
+Each cache entry stores two tensors with shape `[batch_size, num_heads, sequence_length, head_dim]`. The `sequence_length` dimension grows incrementally during generation as we add each new token's Keys and Values.
 
 ### Two-Phase Generation
 
-Modern LLM inference typically has two distinct phases:
+Modern LLM inference separates generation into two distinct phases, each optimized for different computational characteristics:
 
-#### 1. Prefill Phase
+#### Phase 1: Prefill (Prompt Processing)
 
-Process the entire prompt at once to populate the initial cache:
+The prefill phase processes the entire input prompt at once. While this phase still has O(n²) complexity due to computing full attention over all prompt tokens, it only happens once and benefits from parallel processing:
 
 ```python
-# Process all prompt tokens together
-logits, kv_caches = model(prompt_tokens, use_cache=True)
+# Starting tokens from user prompt
+# Shape: [batch_size, initial_seq_len]
+input_ids = tokenize(prompt)
+position = 0
 
-# Cache now contains K, V for all prompt tokens
-# Shape: [batch, num_heads, prompt_length, head_dim]
+# Compute embeddings for all prompt tokens at once
+hidden_states = embed(input_ids)  # [batch, initial_seq_len, D_model]
+
+for layer_idx in range(config['num_layers']):
+    attention = model.layers[layer_idx].attention
+    
+    # Compute Q, K, V for ALL prompt tokens simultaneously
+    # Each shape: [batch, num_heads, initial_seq_len, head_dim]
+    Q = attention.project_queries(hidden_states)
+    K = attention.project_keys(hidden_states)
+    V = attention.project_values(hidden_states)
+    
+    # Store K and V in cache (first time initialization)
+    kv_cache[layer_idx]['keys'] = K
+    kv_cache[layer_idx]['values'] = V
+    
+    # Compute attention over all prompt tokens
+    # attention_scores shape: [batch, num_heads, initial_seq_len, initial_seq_len]
+    attention_scores = (Q @ K.transpose(-2, -1)) / sqrt(config['head_dim'])
+    attention_scores = apply_causal_mask(attention_scores)  # Prevent looking ahead
+    attention_weights = softmax(attention_scores, dim=-1)
+    
+    # Apply attention to values
+    # attention_output shape: [batch, num_heads, initial_seq_len, head_dim]
+    attention_output = attention_weights @ V
+    
+    # Continue through rest of layer (feedforward network, etc.)
+    hidden_states = layer.forward(attention_output)
+
+# Update position to end of prompt
+position = initial_seq_len
+
+# Generate logits and sample first generated token
+logits = model.lm_head(hidden_states[:, -1, :])  # Only use last position
+next_token_id = sample(logits)  # Shape: [batch, 1]
 ```
 
-This phase is still O(n²) for the prompt, but it only happens once.
+After prefill completes, the cache contains Keys and Values for all prompt tokens, and we're ready to begin autoregressive generation.
 
-#### 2. Generation Phase
+#### Phase 2: Autoregressive Generation
 
-Generate tokens one at a time, growing the cache incrementally:
+This is where KV-caching shines. Instead of reprocessing the entire sequence, we only compute representations for the single new token and concatenate with the cache:
 
 ```python
-for step in range(max_new_tokens):
-    # Only process the latest token
-    logits, kv_caches = model(
-        current_token,           # Single token
-        kv_caches=kv_caches,     # Reuse cache
-        use_cache=True,
-        position_offset=position
-    )
+generated_tokens = [next_token_id]
+
+for step in range(max_new_tokens - 1):
+    # Embed only the NEW token (not the entire sequence!)
+    # Shape: [batch, 1, D_model]
+    hidden_states = embed(next_token_id)
     
-    # Cache automatically grows
-    # New shape: [batch, num_heads, position+1, head_dim]
+    for layer_idx in range(config['num_layers']):
+        attention = model.layers[layer_idx].attention
+        
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # KEY OPTIMIZATION: Only compute Q, K, V for NEW token
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        # Compute projections only for the new token
+        # Each shape: [batch, num_heads, 1, head_dim]
+        Q_new = attention.project_queries(hidden_states)
+        K_new = attention.project_keys(hidden_states)
+        V_new = attention.project_values(hidden_states)
+        
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Retrieve cached K, V and concatenate with new values
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        # Retrieve cached K and V from all previous tokens
+        # Shape: [batch, num_heads, position, head_dim]
+        K_cached = kv_cache[layer_idx]['keys']
+        V_cached = kv_cache[layer_idx]['values']
+        
+        # Concatenate along sequence dimension (dim=2)
+        # New shapes: [batch, num_heads, position+1, head_dim]
+        K_all = concatenate([K_cached, K_new], dim=2)
+        V_all = concatenate([V_cached, V_new], dim=2)
+        
+        # Update cache with new concatenated tensors for next iteration
+        kv_cache[layer_idx]['keys'] = K_all
+        kv_cache[layer_idx]['values'] = V_all
+        
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Compute attention (Q is only for the new token)
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        # Q_new:  [batch, num_heads, 1, head_dim]
+        # K_all:  [batch, num_heads, position+1, head_dim]
+        # Result: [batch, num_heads, 1, position+1]
+        attention_scores = (Q_new @ K_all.transpose(-2, -1)) / sqrt(config['head_dim'])
+        
+        # No causal mask needed - we only attend to past + current
+        attention_weights = softmax(attention_scores, dim=-1)
+        
+        # attention_weights: [batch, num_heads, 1, position+1]
+        # V_all:            [batch, num_heads, position+1, head_dim]
+        # Result:           [batch, num_heads, 1, head_dim]
+        attention_output = attention_weights @ V_all
+        
+        # Continue through rest of layer (feedforward network, residuals, etc.)
+        hidden_states = layer.forward(attention_output)
     
-    next_token = sample(logits)
+    # Update position counter
     position += 1
+    
+    # Generate next token from last hidden state
+    logits = model.lm_head(hidden_states[:, -1, :])
+    next_token_id = sample(logits)
+    generated_tokens.append(next_token_id)
+    
+    # Check for end-of-sequence token
+    if next_token_id == EOS_TOKEN:
+        break
+
+return generated_tokens
 ```
 
-Each generation step is now O(n) instead of O(n²).
+Notice the key difference: in the generation phase, we compute Q, K, V only for **one token** per step, not the entire sequence. This single optimization transforms the complexity from O(n²) to O(n).
 
 ### Memory Considerations
 
-While KV-caching dramatically speeds up generation, it comes with memory costs:
+While KV-caching provides massive speed improvements, it introduces significant memory overhead that must be carefully managed in production systems.
 
-**Memory per token** = `2 × d_model × sizeof(dtype)`
+#### Memory Calculation
 
-For example, with:
-- `d_model = 12,288` (GPT-3 scale)
-- `dtype = float16` (2 bytes)
+The memory required for KV-cache grows linearly with sequence length:
 
-Each token adds `~49 KB` to the cache **per layer**. For a model with 96 layers and a 10,000 token sequence, that's nearly **50 GB** of cache!
+**Memory per token per layer** = `2 × num_heads × head_dim × sizeof(dtype)`
 
-This is why:
-- Batch sizes are limited during inference
-- Long context windows are expensive
-- Advanced techniques like PagedAttention are needed
+Or equivalently:
 
-## Practical Impact
+**Memory per token per layer** = `2 × d_model × sizeof(dtype)`
 
-### Performance Gains
+For a concrete example with GPT-3 scale parameters:
+- `d_model = 12,288`
+- `num_layers = 96`
+- `dtype = float16` (2 bytes per element)
 
-For typical generation scenarios, KV-caching provides:
+**Per token:** 2 × 12,288 × 2 bytes = **49,152 bytes ≈ 48 KB per layer**
 
-- **10-100x speedup** depending on sequence length
-- Longer sequences see bigger gains
-- Essential for real-time applications like chatbots
+**Full model:** 48 KB × 96 layers = **4.6 MB per token**
 
-### Trade-offs
+**Long sequence:** 4.6 MB × 10,000 tokens = **46 GB of cache!**
 
-**Advantages:**
-- Massive speed improvements
-- Linear scaling with sequence length
-- Enables practical long-form generation
+### Practical Implications and Memory Management
 
-**Disadvantages:**
-- Significant memory overhead
-- Reduces maximum batch size
-- Requires careful memory management
-- Cache must be cleared between unrelated requests
+The substantial memory footprint of KV-caching creates important trade-offs that shape how LLMs are deployed in production. Understanding these implications is crucial for effective system design.
 
-## Advanced Optimizations
+#### The Memory-Performance Trade-off
 
-Modern systems build on KV-caching with additional techniques:
+While KV-caching delivers 10-100x speedups (with longer sequences seeing greater gains), this performance comes at a cost. The technique exchanges compute for memory—instead of recomputing attention repeatedly, we store intermediate results that grow linearly with sequence length.
 
-### PagedAttention (vLLM)
+This fundamental trade-off manifests in several ways:
 
-Treats KV-cache like virtual memory:
-- Splits cache into fixed-size "pages"
-- Allows non-contiguous memory allocation
-- Enables cache sharing across requests
-- Dramatically improves memory efficiency
+**Batch Size Limitations**: With limited GPU memory, you must choose between serving more users simultaneously (larger batch sizes) or supporting longer conversations (longer sequences). A single 10,000-token conversation can consume as much memory as 50 shorter interactions, forcing difficult capacity planning decisions.
 
-### Multi-Query Attention (MQA)
+**Context Window Costs**: Extending context windows has multiplicative effects. Moving from 4K to 32K tokens increases cache memory by 8x, which is why long-context models like Claude or GPT-4 with 100K+ token windows require specialized memory management and more expensive hardware.
 
-Reduces cache size by sharing K, V across all attention heads:
-- Only one K, V per layer instead of per head
-- Reduces cache size by factor of `num_heads`
-- Slight quality trade-off
+**Hardware Requirements**: Production LLM serving demands careful capacity planning. A single user with an extended conversation can consume gigabytes of GPU memory, limiting how many concurrent users a server can handle. This directly impacts the economics of LLM deployment.
+
+#### Advanced Optimization Techniques
+
+The memory pressure from KV-caching has driven significant innovation in transformer architectures and serving systems:
+
+**PagedAttention (vLLM)**: The most impactful recent advancement treats KV-cache like virtual memory. By splitting the cache into fixed-size "pages," it allows non-contiguous memory allocation and enables cache sharing across requests. This can improve GPU memory utilization by 2-4x, dramatically increasing serving throughput.
+
+**Multi-Query Attention (MQA)**: Instead of having separate Keys and Values for each attention head, MQA shares them across all heads. This reduces cache size by a factor of `num_heads` (often 32-96), cutting memory requirements by 97-99% with minimal quality impact. Used in models like PaLM and StarCoder.
+
+**Grouped-Query Attention (GQA)**: A middle ground that groups multiple heads to share K, V. This balances MQA's memory efficiency with standard attention's quality. LLaMA 2 and similar models use GQA to achieve 4-8x cache reduction while maintaining performance.
+
+**Cache Quantization**: Storing cached values in int8 or even lower precision can halve or quarter memory usage with careful implementation, though this requires validation to ensure quality isn't degraded.
+
 
 
 ## References and Further Reading
