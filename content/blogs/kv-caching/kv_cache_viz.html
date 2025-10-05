@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KV-Cache Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .visualization {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+        
+        .phase-title {
+            font-size: 1.3em;
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .tokens-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .token {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .token.prompt {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+        }
+        
+        .token.generated {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+        
+        .token.current {
+            background: linear-gradient(135deg, #f6ad55, #ed8936);
+            color: white;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .cache-visualization {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .cache-header {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+        
+        .cache-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 30px);
+            gap: 4px;
+        }
+        
+        .cache-cell {
+            width: 30px;
+            height: 30px;
+            background: #cbd5e0;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        
+        .cache-cell.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #2d3748;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .method-card {
+            padding: 20px;
+            border-radius: 12px;
+            background: #f7fafc;
+        }
+        
+        .method-card h3 {
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        
+        .method-card.with-cache {
+            border: 3px solid #48bb78;
+        }
+        
+        .method-card.without-cache {
+            border: 3px solid #f56565;
+        }
+        
+        .complexity {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #68d391;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 KV-Cache Visualization</h1>
+        <p class="subtitle">Interactive demonstration of Key-Value caching in transformer generation</p>
+        
+        <div class="controls">
+            <button id="startBtn">Start Prefill Phase</button>
+            <button id="generateBtn" disabled>Generate Next Token</button>
+            <button id="autoGenerateBtn" disabled>Auto Generate All</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        
+        <div class="visualization">
+            <div class="phase-title">Token Sequence</div>
+            <div class="tokens-container" id="tokensContainer"></div>
+            
+            <div class="cache-visualization">
+                <div class="cache-header">KV-Cache State (Keys & Values for all layers)</div>
+                <div class="cache-grid" id="cacheGrid"></div>
+            </div>
+        </div>
+        
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-label">Current Position</div>
+                <div class="stat-value" id="positionStat">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Tokens Generated</div>
+                <div class="stat-value" id="generatedStat">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Cache Size</div>
+                <div class="stat-value" id="cacheSizeStat">0 KB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Operations Saved</div>
+                <div class="stat-value" id="opsSavedStat">0%</div>
+            </div>
+        </div>
+        
+        <div class="comparison">
+            <div class="method-card with-cache">
+                <h3>✅ With KV-Cache</h3>
+                <p><strong>Each generation step:</strong></p>
+                <ul style="margin: 10px 0 0 20px;">
+                    <li>Compute Q, K, V for NEW token only</li>
+                    <li>Retrieve cached K, V from memory</li>
+                    <li>Concatenate and compute attention</li>
+                    <li>Store new K, V in cache</li>
+                </ul>
+                <div class="complexity">Complexity: O(n)</div>
+            </div>
+            
+            <div class="method-card without-cache">
+                <h3>❌ Without KV-Cache</h3>
+                <p><strong>Each generation step:</strong></p>
+                <ul style="margin: 10px 0 0 20px;">
+                    <li>Recompute Q, K, V for ALL tokens</li>
+                    <li>Recompute attention over entire sequence</li>
+                    <li>Redundant computation grows quadratically</li>
+                    <li>Very slow for long sequences</li>
+                </ul>
+                <div class="complexity">Complexity: O(n²)</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #4299e1, #3182ce);"></div>
+                <span>Prompt Tokens</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #48bb78, #38a169);"></div>
+                <span>Generated Tokens</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #f6ad55, #ed8936);"></div>
+                <span>Current Token</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration
+        const PROMPT_LENGTH = 8;
+        const MAX_GENERATE = 10;
+        const NUM_LAYERS = 3;
+        const CACHE_CELLS_PER_TOKEN = 2; // K and V
+        
+        // State
+        let tokens = [];
+        let cacheSize = 0;
+        let position = 0;
+        let isGenerating = false;
+        let autoGenerateInterval = null;
+        
+        // Elements
+        const tokensContainer = document.getElementById('tokensContainer');
+        const cacheGrid = document.getElementById('cacheGrid');
+        const startBtn = document.getElementById('startBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const autoGenerateBtn = document.getElementById('autoGenerateBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        
+        // Initialize
+        function init() {
+            tokens = Array(PROMPT_LENGTH).fill(null).map((_, i) => ({
+                id: i,
+                value: Math.floor(Math.random() * 100),
+                type: 'prompt'
+            }));
+            renderTokens();
+            renderCache();
+            updateStats();
+        }
+        
+        function renderTokens() {
+            tokensContainer.innerHTML = tokens.map((token, idx) => {
+                let className = 'token ' + token.type;
+                if (idx === position && isGenerating) {
+                    className += ' current';
+                }
+                return `<div class="${className}">${token.value}</div>`;
+            }).join('');
+        }
+        
+        function renderCache() {
+            const totalCells = tokens.length * NUM_LAYERS * CACHE_CELLS_PER_TOKEN;
+            const activeCells = cacheSize;
+            
+            cacheGrid.innerHTML = Array(totalCells).fill(null).map((_, i) => {
+                const isActive = i < activeCells;
+                return `<div class="cache-cell ${isActive ? 'active' : ''}"></div>`;
+            }).join('');
+        }
+        
+        function updateStats() {
+            document.getElementById('positionStat').textContent = position;
+            document.getElementById('generatedStat').textContent = 
+                tokens.filter(t => t.type === 'generated').length;
+            document.getElementById('cacheSizeStat').textContent = 
+                `${(cacheSize * 0.5).toFixed(1)} KB`; // Simulated size
+            
+            // Calculate operations saved
+            const totalTokens = tokens.length;
+            const opsWithoutCache = (totalTokens * (totalTokens + 1)) / 2;
+            const opsWithCache = totalTokens;
+            const saved = ((opsWithoutCache - opsWithCache) / opsWithoutCache * 100).toFixed(0);
+            document.getElementById('opsSavedStat').textContent = `${saved}%`;
+        }
+        
+        function startPrefill() {
+            isGenerating = true;
+            startBtn.disabled = true;
+            
+            // Simulate prefill phase
+            let fillPosition = 0;
+            const fillInterval = setInterval(() => {
+                fillPosition++;
+                cacheSize = fillPosition * NUM_LAYERS * CACHE_CELLS_PER_TOKEN;
+                position = fillPosition;
+                
+                renderTokens();
+                renderCache();
+                updateStats();
+                
+                if (fillPosition >= PROMPT_LENGTH) {
+                    clearInterval(fillInterval);
+                    isGenerating = false;
+                    generateBtn.disabled = false;
+                    autoGenerateBtn.disabled = false;
+                    renderTokens();
+                }
+            }, 200);
+        }
+        
+        function generateToken() {
+            if (tokens.length >= PROMPT_LENGTH + MAX_GENERATE) {
+                generateBtn.disabled = true;
+                autoGenerateBtn.disabled = true;
+                return;
+            }
+            
+            const newToken = {
+                id: tokens.length,
+                value: Math.floor(Math.random() * 100),
+                type: 'generated'
+            };
+            
+            tokens.push(newToken);
+            cacheSize += NUM_LAYERS * CACHE_CELLS_PER_TOKEN;
+            position = tokens.length;
+            
+            isGenerating = true;
+            renderTokens();
+            
+            setTimeout(() => {
+                isGenerating = false;
+                renderTokens();
+                renderCache();
+                updateStats();
+                
+                if (tokens.length >= PROMPT_LENGTH + MAX_GENERATE) {
+                    generateBtn.disabled = true;
+                    autoGenerateBtn.disabled = true;
+                }
+            }, 300);
+        }
+        
+        function autoGenerate() {
+            generateBtn.disabled = true;
+            autoGenerateBtn.disabled = true;
+            
+            autoGenerateInterval = setInterval(() => {
+                if (tokens.length >= PROMPT_LENGTH + MAX_GENERATE) {
+                    clearInterval(autoGenerateInterval);
+                    return;
+                }
+                generateToken();
+            }, 400);
+        }
+        
+        function reset() {
+            if (autoGenerateInterval) {
+                clearInterval(autoGenerateInterval);
+            }
+            
+            tokens = [];
+            cacheSize = 0;
+            position = 0;
+            isGenerating = false;
+            
+            startBtn.disabled = false;
+            generateBtn.disabled = true;
+            autoGenerateBtn.disabled = true;
+            
+            init();
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', startPrefill);
+        generateBtn.addEventListener('click', generateToken);
+        autoGenerateBtn.addEventListener('click', autoGenerate);
+        resetBtn.addEventListener('click', reset);
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
