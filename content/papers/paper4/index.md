@@ -2,7 +2,7 @@
 title: "Comprehensive Analysis of Cardiogenic Vibrations for Automated Detection of Atrial Fibrillation Using Smartphone Mechanocardiograms"
 date: 2018-11-26
 author: ["Mojtaba Jafari Tadi", "Saeed Mehrang", "Matti Kaisti", "Olli Lahdenoja", "Tero Hurnanen", "Jussi Jaakkola", "Samuli Jaakkola", "Tuija Vasankari", "Tuomas Kiviniemi", "Juhani Airaksinen", "Timo Knuutila", "Eero Lehtonen", "Tero Koivisto", "Mikko Pänkäälä"]
-tags: ["atrial fibrillation", "smartphone mechanocardiography", "seismocardiography", "gyrocardiography", "machine learning"]
+tags: ["atrial fibrillation", "seismocardiography", "gyrocardiography", "machine learning"]
 description: "This paper presents a comprehensive time-frequency pattern analysis approach for automated detection of AFib from smartphone-derived seismocardiography (SCG) and gyrocardiography (GCG) signals."
 summary: "This paper presents a comprehensive time-frequency pattern analysis approach for automated detection of AFib from smartphone-derived seismocardiography (SCG) and gyrocardiography (GCG) signals. The experimental results showed high accuracy, sensitivity, and specificity for both cross-validation and cross-database tests."
 cover:

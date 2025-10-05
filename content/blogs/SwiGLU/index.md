@@ -1,7 +1,7 @@
 ---
 title: "SwiGLU: The Activation Function Powering Modern LLMs"
 date: 2025-10-05
-tags: ["Deep Learning", "Transformers", "Neural Networks", "LLMs"]
+tags: ["Deep Learning", "Transformers", "LLM"]
 author: "Saeed Mehrang"
 description: "A comprehensive guide to SwiGLU (Swish-Gated Linear Unit) - the activation function that has become the standard in state-of-the-art language models like LLaMA, DeepSeek, and PaLM."
 summary: "Discover why SwiGLU has replaced ReLU and GELU in modern transformers. This post explains the mathematical foundations, the evolution from sigmoid gates to Swish gates, and why this innovation delivers 5-8% performance gains - complete with Python implementations and interactive visualizations."

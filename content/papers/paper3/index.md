@@ -1,7 +1,7 @@
 ---
 title: "Reliability of Self-Applied Smartphone Mechanocardiography for Atrial Fibrillation Detection"
 date: 2019-10-07
-tags: ["atrial fibrillation", "smartphone mechanocardiography", "self-applied", "physician-applied", "machine learning", "knowledge-based learning"]
+tags: ["atrial fibrillation", "smartphone mechanocardiography", "machine learning", "seismocardiography", "gyrocardiography"]
 author: ["Saeed Mehrang", "Mojtaba Jafari Tadi", "Timo Knuutila", "Jussi Jaakkola", "Samuli Jaakkola", "Tuomas Kiviniemi", "Tuija Vasankari", "Juhani Airaksinen", "Tero Koivisto", "Mikko Pänkäälä"]
 description: "This paper investigates the reliability of self-applied smartphone mechanocardiography (sMCG) for the detection of atrial fibrillation (AFib)."
 summary: "This study investigates the reliability of self-applied smartphone mechanocardiography (sMCG) for the detection of atrial fibrillation (AFib). The results show that sMCG can accurately differentiate AFib from sinus rhythm in both physician- and self-applied recording scenarios."
