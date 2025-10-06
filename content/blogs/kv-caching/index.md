@@ -1,6 +1,6 @@
 ---
 title: "KV-Caching in LLMs: The Optimization That Makes Inference Practical"
-date: 2025-10-15
+date: 2025-10-05
 tags: ["Deep Learning", "Transformers", "LLM"]
 author: "Saeed Mehrang"
 description: "A deep dive into Key-Value caching in transformer models - the critical optimization that transforms O(n²) autoregressive generation into O(n), enabling real-time LLM inference at scale."
