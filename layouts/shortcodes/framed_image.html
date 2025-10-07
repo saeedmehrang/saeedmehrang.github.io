@@ -1,0 +1,8 @@
+<figure style="max-width: {{ .Get "width" | default "300px" }}; height: {{ .Get "height" | default "600px" }}; overflow: hidden; margin: 0 auto;">
+    <a href="{{ .Get "src" }}" data-lightbox="gallery" data-title="{{ .Get "alt" | default "Image" }}">
+        <img src="{{ .Get "src" }}" alt="{{ .Get "alt" | default "Image" }}" style="width: 100%; height: auto;">
+    </a>
+    <figcaption style="text-align: center; font-style: italic;">
+        {{ .Inner | default "Click to maximize the image." }}
+    </figcaption>
+</figure>
