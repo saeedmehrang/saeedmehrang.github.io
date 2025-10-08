@@ -6,7 +6,7 @@ author: "Saeed Mehrang"
 description: "A simple guide to understanding Multi-head Latent Attention (MLA), an efficient attention mechanism that reduces memory usage during inference while maintaining model quality."
 summary: "This blog post explains Multi-head Latent Attention (MLA) and provides minimal working code in pytorch."
 cover:
-    #image: "rope_vs_sinusoid.png"
+    image: "mla_architecture.png"
     alt: "Multi-head Latent Attention (MLA)"
     relative: true
 showToc: true
