@@ -123,7 +123,6 @@ $$
 O_i  &= \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V \\
      &= \text{softmax}\left(\frac{(\mathbf{C}_{\mathbf{Q}} \mathbf{W}^{\mathbf{U}}_{\mathbf{Q}, i}) (\mathbf{C}_{\mathbf{KV}} \mathbf{W}^{\mathbf{U}}_{\mathbf{K}, i})^T}{\sqrt{d_k}}\right) \mathbf{C}_{\mathbf{KV}} \mathbf{W}^{\mathbf{U}}_{\mathbf{V}, i} \\
      &= \text{softmax}\left(\frac{\mathbf{C}_{\mathbf{Q}} \mathbf{W}^{\mathbf{U}}_{\mathbf{Q}, i} (\mathbf{W}^{\mathbf{U}}_{\mathbf{K}, i})^T \mathbf{C}_{\mathbf{KV}}^T}{\sqrt{d_k}}\right) \mathbf{C}_{\mathbf{KV}} \mathbf{W}^{\mathbf{U}}_{\mathbf{V}, i} \\
-
      &= \text{softmax}\left(\frac{\mathbf{C}_{\mathbf{Q}} \mathbf{W}^{U}_{\mathbf{QK}, i} \mathbf{C}_{\mathbf{KV}}^T}{\sqrt{d_k}}\right) \mathbf{C}_{\mathbf{KV}} \mathbf{W}^{\mathbf{U}}_{\mathbf{V}, i}
 \end{align*}
 $$
