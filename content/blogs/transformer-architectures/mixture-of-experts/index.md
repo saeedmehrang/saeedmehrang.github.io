@@ -1,7 +1,7 @@
 ---
-title: "Unpacking Mixture-of-Experts (MoE) in LLMs: A Foundational Dive" 
+title: "Unpacking Mixture-of-Experts (MoE) in LLMs: A Foundational Dive"
 date: 2025-10-09
-tags: ["LLM", "MoE", "Deep Learning", "Sparse Models"] 
+tags: ["LLM", "MoE", "Deep Learning", "Sparse Models"]
 author: "Saeed Mehrang" 
 description: "Explore the foundational concepts of Mixture-of-Experts (MoE) in Large Language Models, from its origins to a simple PyTorch implementation of the original architecture." 
 summary: "This blog post demystifies Mixture-of-Experts (MoE) layers, a key innovation for scaling Large Language Models efficiently. We'll trace its origins, delve into the mathematical underpinnings, and build a foundational MoE block in PyTorch, mirroring the architecture from its initial conception."
@@ -60,7 +60,7 @@ where:
 * $\max(0, \cdot)$ is the non-linear activation function (such as ReLU or the more common **GELU** in modern LLMs).
 * $W_2 \in \mathbb{R}^{d_{ff} \times d_{model}}$ and $b_2 \in \mathbb{R}^{d_{model}}$ are the weights and biases of the **second linear layer**. This layer **contracts** the dimension back to the original $d_{model}$.
 
-This FFN processes every input $\mathbf{x}$ through all its parameters $W_1, b_1, W_2, b_2$. The core purpose of the FFN is to allow the model to perform per-token, non-linear computations on the features that have been contextually enriched by the attention mechanism. **In the context of scaling LLMs, this two-layer dense structure is the primary component that the Mixture-of-Experts layer is designed to replace, as it accounts for the vast majority of the trainable parameters and computational cost in a dense Transformer block.** Note that there is another popular variant of the FFN block, the SwiGLU block, that has been used in many LLM architectures. SwiGLU does not have sparsity as MOE has. Read my [other blog]() about SwiGLU if you want to learn what that is, also read [the summary table](#summary-table-ffn-vs-swiglu-vs-simple-moe
+This FFN processes every input $\mathbf{x}$ through all its parameters $W_1, b_1, W_2, b_2$. The core purpose of the FFN is to allow the model to perform per-token, non-linear computations on the features that have been contextually enriched by the attention mechanism. **In the context of scaling LLMs, this two-layer dense structure is the primary component that the Mixture-of-Experts layer is designed to replace, as it accounts for the vast majority of the trainable parameters and computational cost in a dense Transformer block.** Note that there is another popular variant of the FFN block, the SwiGLU block, that has been used in many LLM architectures. SwiGLU does not have sparsity as MOE has. Read my [other blog](https://saeedmehrang.github.io/blogs/transformer-architectures/swiglu/) about SwiGLU if you want to learn what that is, also read [the summary table](#summary-table-ffn-vs-swiglu-vs-simple-moe
 ) toward the end of this blog.
 
 ### The Mixture-of-Experts (MoE) Layer: The Key Innovation
@@ -360,8 +360,8 @@ Mixture-of-Experts represents a crucial architectural innovation, enabling the c
 | Model / Framework | Year | Developer | Total Params / Activated Params | Key Innovation / Use |
 | :--- | :--- | :--- | :--- | :--- |
 | **Grok-1** | 2024 | xAI | 314 Billion (25% active) | A high-profile MoE model demonstrating its use in competitive, general-purpose LLMs. |
-| **Mixtral 8x7B** | 2023 | Mistral AI | 47 Billion (13 Billion active) | Demonstrated that MoE is not just for hyper-scale models, offering state-of-the-art performance in an accessible open-source package. |
-| **DeepSeek-V3** | 2025 | DeepSeek-AI | 671 Billion (37 Billion active) | A powerful open-weight MoE model known for its **extreme training efficiency** and competitive performance, often matching or exceeding much larger models. Pioneers **auxiliary-loss-free** load balancing. |
+| **Mixtral 8x7B** | 2024 | Mistral AI | 47 Billion (13 Billion active) | Demonstrated that MoE is not just for hyper-scale models, offering state-of-the-art performance in an accessible open-source package. |
+| **DeepSeek-V3** | 2024 | DeepSeek-AI | 671 Billion (37 Billion active) | A powerful open-weight MoE model known for its **extreme training efficiency** and competitive performance, often matching or exceeding much larger models. Pioneers **auxiliary-loss-free** load balancing |
 | **Qwen2.5-Max** | 2025 | Alibaba Cloud | Large MoE | An extremely large-scale MoE model pre-trained on over 20 trillion tokens, demonstrating the continued push toward ultra-scale MoE for commercial applications. |
 
 
