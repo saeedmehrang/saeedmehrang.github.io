@@ -4,6 +4,11 @@
 <header class="page-header">
   {{- partial "breadcrumbs.html" . }}
   <h1>{{ .Title }}</h1>
+  {{- if .Description }}
+  <div class="post-description">
+    {{ .Description | markdownify }}
+  </div>
+  {{- end }}
 </header>
 {{- end }}
 
@@ -15,35 +20,7 @@
 </div>
 {{- end }}
 
-{{- $sections := .Sections }}
-{{- $pages := .RegularPages }}
-
-{{- if $sections }}
-<div class="blog-grid">
-{{- range $sections }}
-<article class="post-entry">
-  {{- $isHidden := (.Param "cover.hiddenInList") | default (.Param "cover.hidden") | default false }}
-  {{- partial "cover.html" (dict "cxt" . "IsSingle" false "isHidden" $isHidden) }}
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">
-      {{- .Title }}
-    </h2>
-  </header>
-  {{- if .Description }}
-  <div class="entry-content">
-    <p>{{ .Description }}</p>
-  </div>
-  {{- end }}
-  <a class="entry-link" aria-label="category link to {{ .Title | plainify }}" href="{{ .Permalink }}"></a>
-</article>
-{{- end }}
-</div>
-{{- end }}
-
-{{- if $pages }}
-{{- if $sections }}
-<h2>All Blog Posts</h2>
-{{- end }}
+{{- $pages := union .RegularPages .Sections }}
 
 {{- $paginator := .Paginate $pages }}
 
@@ -101,8 +78,6 @@
     {{- end }}
   </nav>
 </footer>
-{{- end }}
-
 {{- end }}
 
 {{- end }}{{- /* end main */ -}}
