@@ -1,18 +1,20 @@
 ---
-title: "Molecules, Proteins, and the Drug Discovery Challenge"
+title: "Computational Drug Discovery Part 1: Molecules, Proteins, and the Drug Discovery Challenge"
 date: 2025-10-11
 draft: false
 description: "An introduction to molecular biology fundamentals and the computational drug discovery pipeline, exploring why finding new drugs is one of the most challenging problems in science and medicine."
 tags: ["drug-discovery", "computational-biology", "machine-learning", "proteins", "molecular-biology"]
 series: ["Computational Drug Discovery"]
 series_order: 1
+showToc: true
+disableAnchoredHeadings: false
 ---
 
 ## Introduction
 
 Drug discovery is one of humanity's most ambitious scientific endeavors. The journey from identifying a disease target to getting a medication on pharmacy shelves takes an average of 10-15 years and costs upwards of $2.6 billion[^1]. Despite these massive investments, approximately 90% of drug candidates fail during clinical trials. This staggering failure rate isn't due to lack of effort—it's because drug discovery is an extraordinarily complex computational and biological problem.
 
-In this blog series, we'll explore how modern computational methods, particularly machine learning and artificial intelligence, are revolutionizing drug discovery. But before we dive into the algorithms, we need to understand the fundamental biology: what molecules and proteins are, how they interact, and why finding the right drug molecule is like searching for a needle in a haystack the size of the universe.
+In this blog series, we'll explore how modern computational methods, particularly machine learning and artificial intelligence, are revolutionizing drug discovery. But before we dive into the algorithms—from protein structure prediction to molecular generation—we need to understand the fundamental biology: what molecules and proteins are, how they interact, and why finding the right drug molecule is like searching for a needle in a haystack the size of the universe.
 
 ## The Building Blocks: Atoms, Bonds, and Molecules
 
@@ -146,13 +148,18 @@ Finding a molecule that binds to a target protein is only the first hurdle. A su
    - **Excretion**: How is it eliminated from the body?
    - **Toxicity**: Is it safe?
 
-3. **Drug-like properties**: Lipinski's "Rule of Five" provides rough guidelines:
-   - Molecular weight < 500 Da
-   - LogP (lipophilicity) < 5
-   - Hydrogen bond donors ≤ 5
-   - Hydrogen bond acceptors ≤ 10
+3. **Drug-like properties**: Lipinski's "Rule of Five" provides rough guidelines for whether a molecule is likely to be orally bioavailable—meaning it can be taken as a pill and successfully absorbed into the bloodstream through the digestive system. Developed by Christopher Lipinski in 1997 based on analyzing existing oral drugs, this rule identifies physicochemical properties that help molecules pass through intestinal membranes and reach their targets. The rule gets its name because most of the cutoff values are multiples of five:
 
-   These rules help ensure oral bioavailability, though many successful drugs violate them.
+- **Molecular weight < 500 Daltons (Da)**: This measures how heavy the molecule is. One Dalton is approximately the mass of a single hydrogen atom. Smaller molecules (under 500 Da) generally cross cell membranes more easily than larger ones. Very large molecules struggle to squeeze through the lipid bilayers that form cell membranes. For reference, aspirin has a molecular weight of 180 Da, while many antibiotics fall in the 300-500 Da range.
+
+- **LogP (lipophilicity) < 5**: LogP measures how much a molecule "likes" fat versus water—technically, it's the logarithm of the partition coefficient between octanol (representing fatty environments) and water. A LogP of 0 means the molecule distributes equally between oil and water. Positive values mean it prefers oil (lipophilic), while negative values mean it prefers water (hydrophilic). For oral drugs, you want a balance: too hydrophilic (LogP < 0) and the molecule won't cross lipid membranes; too lipophilic (LogP > 5) and it won't dissolve in blood, may accumulate in fatty tissues, and often binds indiscriminately to many proteins causing side effects. A LogP between 1-3 is often ideal for oral drugs.
+
+- **Hydrogen bond donors ≤ 5**: Hydrogen bond donors are groups that have a hydrogen attached to an electronegative atom (oxygen or nitrogen), like -OH or -NH₂, which can donate a hydrogen to form hydrogen bonds. These groups make molecules more water-soluble but also make it harder to cross cell membranes, because membranes are made of fatty molecules that repel water-loving groups. Having too many hydrogen bond donors (more than 5) means the molecule becomes too polar and struggles to pass through the lipid-rich intestinal barrier.
+
+- **Hydrogen bond acceptors ≤ 10**: Hydrogen bond acceptors are atoms with lone pairs of electrons that can accept hydrogen bonds—typically oxygen and nitrogen atoms. Like donors, having too many acceptors makes the molecule too polar. The rule allows for more acceptors (10) than donors (5) because acceptors generally have a smaller negative impact on membrane permeability. Common acceptors include the oxygen atoms in carbonyl groups (C=O), ether groups (C-O-C), and nitrogen atoms in amines.
+
+These rules help ensure oral bioavailability, though many successful drugs violate them—particularly newer biologics, antibody-drug conjugates, and drugs designed for specific transporters that actively shuttle them across membranes. The Rule of Five is a guideline, not an absolute requirement, but it remains a useful filter when screening large chemical libraries for potential drug candidates.
+
 
 4. **Synthetic accessibility**: Can we actually make the molecule at scale?
 
@@ -180,15 +187,20 @@ Modern drug discovery is a multi-stage pipeline where computational methods play
 
 This stage answers: "What biological target should we go after?" Scientists study disease biology to identify proteins that, when modified, could alleviate symptoms or address root causes. This involves:
 
-- Genetic studies linking gene variants to disease susceptibility
-- Protein expression analysis in diseased vs. healthy tissues
-- Pathway analysis to understand disease mechanisms
+- **Genetic studies linking gene variants to disease susceptibility**: Researchers compare the DNA of people with a disease to healthy individuals, looking for genetic variations that appear more frequently in patients. For example, genome-wide association studies (GWAS) might reveal that people with a certain gene variant are three times more likely to develop Alzheimer's disease, suggesting that the protein encoded by that gene could be a good drug target.
+
+- **Protein expression analysis in diseased vs. healthy tissues**: Scientists measure which proteins are present at higher or lower levels in sick tissue compared to healthy tissue. If a specific protein is overproduced in cancer cells but not in normal cells, targeting that protein might selectively kill cancer while sparing healthy tissue. Techniques like mass spectrometry and immunohistochemistry help quantify these differences.
+
+- **Pathway analysis to understand disease mechanisms**: Diseases rarely involve just one protein—they involve networks of interacting proteins (pathways). By mapping these molecular pathways, scientists can identify which proteins are central to the disease process. For instance, in diabetes, researchers study the insulin signaling pathway to find proteins that could restore normal glucose metabolism when targeted by drugs.
 
 **AI/Computation role**:
-- Mining genomic databases to find disease-associated genes
-- Analyzing gene expression data with machine learning
-- Network analysis to identify key nodes in disease pathways
-- Predicting which proteins are "druggable" (have suitable binding sites)
+- **Mining genomic databases to find disease-associated genes**: AI algorithms can search through massive databases containing millions of genetic sequences from patients worldwide, identifying patterns that human researchers would miss. Machine learning can integrate data from multiple studies to find genes consistently linked to diseases, even when individual studies show weak signals.
+
+- **Analyzing gene expression data with machine learning**: When cells are diseased, they produce different amounts of thousands of proteins. Machine learning models can analyze this complex data to identify which protein changes are causes of disease (good drug targets) versus which are just side effects. These models can also predict which combination of protein targets might work best together.
+
+- **Network analysis to identify key nodes in disease pathways**: Computational network analysis treats proteins as nodes and their interactions as connections, creating a map of cellular communication. AI can identify "hub" proteins that influence many others—shutting down one hub might have a bigger therapeutic effect than targeting proteins on the periphery. This is similar to how disrupting a major airport affects the entire airline network.
+
+- **Predicting which proteins are "druggable" (have suitable binding sites)**: Not all proteins make good drug targets. AI models trained on existing drugs can analyze a protein's 3D structure and surface features to predict whether small molecules can bind tightly to it. These models look for pockets or grooves on the protein surface that are the right size, shape, and chemical environment to accommodate drug molecules.
 
 ### Stage 2: Hit Discovery
 
@@ -196,16 +208,22 @@ This stage answers: "What biological target should we go after?" Scientists stud
 
 Once we have a target, we need to find initial "hit" compounds—molecules that show measurable binding or activity. Traditional approaches include:
 
-- **High-throughput screening (HTS)**: Robotically testing thousands to millions of compounds from chemical libraries
-- **Fragment-based drug discovery**: Testing small molecular fragments, then combining successful ones
-- **Structure-based design**: Using the protein's 3D structure to design molecules that fit the binding site
+- **High-throughput screening (HTS)**: Robot systems can test 100,000+ compounds per day by mixing each one with the target protein and measuring whether binding occurs. Companies maintain libraries of millions of compounds, and HTS systematically tests them all. However, this is expensive (costing hundreds of thousands of dollars per screen), and you can only test compounds that physically exist in your library.
+
+- **Fragment-based drug discovery**: Instead of testing complete drug-sized molecules, scientists test tiny molecular "fragments" (typically 150-250 Da, much smaller than the usual 300-500 Da for drugs). These fragments bind weakly but are more likely to fit somewhere on the protein. Once you find several fragments that bind to different parts of the binding site, medicinal chemists can chemically link them together or use them as starting points to build up larger, more potent molecules.
+
+- **Structure-based design**: If you know the 3D structure of your target protein (from X-ray crystallography, cryo-EM, or AI prediction like AlphaFold), medicinal chemists can visually examine the binding pocket and design molecules that should fit like a hand in a glove. They consider the pocket's shape, which amino acids line it, and what chemical interactions would be favorable. This is like custom-tailoring a key to fit a specific lock.
 
 **AI/Computation role**:
-- **Virtual screening**: Computationally screening millions of molecules before physical testing
-- **Molecular docking**: Predicting how molecules bind to protein structures
-- **Machine learning models**: Predicting binding affinity from molecular structure
-- **Generative models**: Designing novel molecules optimized for the target
-- **Active learning**: Iteratively selecting the most informative compounds to test experimentally
+- **Virtual screening**: Instead of physically testing millions of compounds in the lab, AI can computationally simulate how each molecule would interact with the target protein. This allows screening of billions of virtual compounds (that don't even exist yet) at a tiny fraction of the cost. Only the top-scoring candidates—typically a few hundred or thousand—need to be synthesized and tested experimentally.
+
+- **Molecular docking**: Docking algorithms predict the 3D pose of how a small molecule will sit inside a protein's binding pocket. The software tries thousands of different orientations and conformations, scoring each based on geometric fit and predicted interaction strength. It's like a computational jigsaw puzzle where the algorithm tries to find the best way to fit the molecule into the protein pocket.
+
+- **Machine learning models**: Predicting binding affinity from molecular structure: Rather than physics-based docking, ML models learn from historical data of which molecules bound strongly to similar proteins. Given a new molecule, the model predicts its binding affinity (how tightly it will stick) based on patterns learned from thousands of previous experiments. Modern graph neural networks can make these predictions in milliseconds, compared to minutes or hours for physics-based methods.
+
+- **Generative models**: Designing novel molecules optimized for the target: These AI models don't just score existing molecules—they create entirely new molecular structures. They learn the "grammar" of chemistry (which atom arrangements are valid) and the patterns of what makes molecules bind well, then generate novel designs that have never been synthesized before but are predicted to have strong binding and good drug-like properties.
+
+- **Active learning**: Iteratively selecting the most informative compounds to test experimentally: This is a smart sampling strategy where AI doesn't just predict which molecules are best, but which experiments would teach it the most. The algorithm might select molecules it's uncertain about to reduce that uncertainty, creating a feedback loop where each round of experiments makes the AI model smarter and better at predicting the next round. This can dramatically reduce the total number of experiments needed.
 
 Modern approaches can reduce the number of compounds that need physical synthesis and testing by 10-100x, saving enormous time and resources.
 
@@ -216,12 +234,17 @@ Modern approaches can reduce the number of compounds that need physical synthesi
 Hit compounds usually have problems: weak binding, poor solubility, off-target effects, or toxicity. Medicinal chemists iteratively modify the molecular structure to improve properties while maintaining activity. This is a complex multi-objective optimization problem.
 
 **AI/Computation role**:
-- **QSAR (Quantitative Structure-Activity Relationship)**: Predicting how structural changes affect activity
-- **ADMET prediction**: Machine learning models for absorption, distribution, metabolism, excretion, and toxicity
-- **Molecular dynamics**: Simulating protein-ligand binding at atomic detail
-- **Multi-objective optimization**: Algorithms that balance multiple desired properties
-- **Retrosynthesis prediction**: AI models that suggest synthetic routes for proposed molecules
-- **Generative models with constraints**: Creating new molecules that optimize multiple properties simultaneously
+- **QSAR (Quantitative Structure-Activity Relationship)**: Predicting how structural changes affect activity: QSAR models learn mathematical relationships between a molecule's structure (like which functional groups it has, its shape, its electronic properties) and its biological activity. For example, a QSAR model might reveal that adding a chlorine atom at a specific position increases binding affinity by 10-fold, while adding it elsewhere has no effect. This helps chemists make informed decisions about which modifications to try next.
+
+- **ADMET prediction**: Machine learning models for absorption, distribution, metabolism, excretion, and toxicity: Before synthesizing modified molecules, AI can predict whether they'll have acceptable pharmacological properties. Models trained on thousands of previous drugs can predict whether a molecule will be absorbed through the intestine, how long it will stay in the body, whether liver enzymes will break it down too quickly, and whether it's likely to be toxic to the heart, liver, or kidneys. This prevents wasting time on molecules that would fail later.
+
+- **Molecular dynamics**: Simulating protein-ligand binding at atomic detail: These physics-based simulations model every atom's movement over time (typically nanoseconds to microseconds), showing how the drug molecule and protein move and interact dynamically. This reveals whether the drug stays stably bound, which interactions are most important, and whether the protein changes shape upon binding. However, these simulations are computationally expensive, often requiring hours to days on powerful computers.
+
+- **Multi-objective optimization**: Algorithms that balance multiple desired properties: Since improving one property (like binding) often worsens another (like solubility), optimization algorithms help find the best compromise. These algorithms explore chemical modifications that improve the overall "score" across all important properties simultaneously, rather than optimizing one property at a time. Think of it like tuning a car for both speed and fuel efficiency—you need to find the sweet spot.
+
+- **Retrosynthesis prediction**: AI models that suggest synthetic routes for proposed molecules: Just because you design a molecule doesn't mean chemists can actually make it. Retrosynthesis AI works backward from the target molecule, breaking it down into simpler starting materials and suggesting the chemical reactions needed to build it. Modern models trained on millions of published reactions can suggest routes that human chemists might not consider, and assess whether a synthesis would be practical or prohibitively difficult.
+
+- **Generative models with constraints**: Creating new molecules that optimize multiple properties simultaneously: Advanced generative models can be given multiple objectives (high binding, low toxicity, good solubility, easy to synthesize) and generate novel molecules that satisfy all constraints. These models navigate the chemical space more intelligently than random modifications, proposing molecules that represent meaningful improvements across the board.
 
 Tools like graph neural networks can predict molecular properties orders of magnitude faster than physics-based simulations, enabling rapid iteration.
 
@@ -230,27 +253,35 @@ Tools like graph neural networks can predict molecular properties orders of magn
 **Goal**: Demonstrate safety and efficacy before human trials.
 
 Lead compounds undergo rigorous testing in cell cultures and animal models. Scientists assess:
-- Efficacy: Does it work in biological systems?
-- Safety: What are the toxic doses? Are there concerning side effects?
-- Pharmacokinetics: How does the body process the drug?
+- **Efficacy**: Does it work in biological systems?: First tested in cells grown in dishes (in vitro), then in living animals (in vivo). Researchers measure whether the drug actually produces the desired biological effect—does it kill cancer cells, reduce inflammation, or lower blood pressure? They also determine the dose-response relationship: how much drug is needed to see an effect?
+
+- **Safety**: What are the toxic doses? Are there concerning side effects?: Animal studies test escalating doses to find the highest dose animals can tolerate without serious harm. Researchers monitor for organ damage (liver, kidney, heart toxicity), examine tissues under microscopes, and track blood chemistry. They also watch for behavioral changes, weight loss, or other signs of distress that might indicate problems.
+
+- **Pharmacokinetics**: How does the body process the drug?: Scientists track the drug's concentration in blood over time after dosing. This reveals how quickly it's absorbed, how it distributes to different tissues, how long it remains in the body (half-life), and how it's eliminated (through kidneys, liver metabolism, etc.). This data helps predict the appropriate dosing schedule for humans—whether a drug needs to be taken once daily, twice daily, or more frequently.
 
 **AI/Computation role**:
-- **Toxicity prediction**: ML models trained on historical toxicity data can flag potential problems early
-- **Biomarker identification**: Analyzing preclinical data to find indicators of drug response
-- **Dose-response modeling**: Predicting optimal dosing regimens
-- **Cross-species extrapolation**: Predicting human responses from animal data
-- **Clinical trial design**: Optimizing trial protocols using historical data
+- **Toxicity prediction**: ML models trained on historical toxicity data can flag potential problems early: Before expensive animal studies, AI models can screen for known toxicity patterns. Models trained on databases of chemicals that caused liver damage, heart problems, or other issues can predict whether a new molecule shares structural features with known toxins. This early warning system can save months of work and reduce animal testing by filtering out problematic candidates.
+
+- **Biomarker identification**: Analyzing preclinical data to find indicators of drug response: Machine learning can analyze complex biological data (gene expression, protein levels, metabolite concentrations) to identify biomarkers—measurable indicators that predict whether a drug is working. For example, if a certain protein level drops when the drug is effective, measuring that protein provides an early signal of efficacy before you see full therapeutic effects. These biomarkers become valuable in later human trials.
+
+- **Dose-response modeling**: Predicting optimal dosing regimens: Computational pharmacokinetic/pharmacodynamic (PK/PD) models integrate data on how drug concentration changes over time with how those concentrations produce effects. These models can predict the optimal dose and frequency to maintain therapeutic drug levels without causing toxicity, even before testing all possible regimens experimentally. This reduces the amount of trial-and-error needed.
+
+- **Cross-species extrapolation**: Predicting human responses from animal data: Animals metabolize drugs differently than humans—a safe dose in mice might be toxic in humans, or vice versa. AI models can learn scaling relationships and species differences to better predict human responses from animal data. These models incorporate known differences in liver enzymes, protein targets, and physiology to make more accurate human predictions.
+
+- **Clinical trial design**: Optimizing trial protocols using historical data: Even before human trials begin, AI can analyze data from previous trials of similar drugs to suggest optimal trial designs—how many patients to enroll, which measurements to track, which patient subgroups to focus on, and which doses to test. This increases the probability of trial success and reduces the number of patients exposed to suboptimal doses.
 
 Even at this late stage, computational methods can identify potential failures before expensive animal studies.
 
 ### Beyond Preclinical: Clinical Trials and Approval
 
 After successful preclinical testing, drugs enter clinical trials:
-- **Phase I**: Safety testing in small numbers of healthy volunteers
-- **Phase II**: Efficacy and dosing in patients with the disease
-- **Phase III**: Large-scale trials comparing to standard treatments
+- **Phase I**: Safety testing in small numbers (20-100) of healthy volunteers to establish that the drug is safe in humans, determine how it's metabolized, and find the maximum tolerated dose. These are the first humans to ever take the drug.
 
-This process takes 6-10 years and costs hundreds of millions. AI is beginning to play roles in patient selection, biomarker discovery, and trial optimization, though clinical testing remains the most expensive and time-consuming part of drug development.
+- **Phase II**: Efficacy and dosing in patients (100-300) who actually have the disease. Researchers assess whether the drug produces the intended therapeutic effect and continue to monitor safety. They also refine the optimal dose and start looking for which patient populations benefit most.
+
+- **Phase III**: Large-scale trials (1,000-3,000+ patients) comparing the new drug to current standard treatments (or placebo if no treatment exists). These trials must demonstrate that the drug is both effective and safe in a diverse patient population before regulatory agencies like the FDA will approve it for market.
+
+This process takes 6-10 years and costs hundreds of millions of dollars. AI is beginning to play roles in patient selection (identifying which patients are most likely to respond), biomarker discovery (finding early indicators of response), and trial optimization (determining optimal trial designs and endpoints), though clinical testing remains the most expensive and time-consuming part of drug development.
 
 ## Why This Is Computationally Hard
 
@@ -295,19 +326,25 @@ Despite these challenges, AI is transforming drug discovery:
 - **Foundation models** trained on massive chemical and biological datasets are emerging
 
 The field is moving from physics-based simulations (slow but interpretable) toward hybrid approaches that combine machine learning's speed with physics-based modeling's rigor.
-
 ## What's Next
 
 In this series, we'll build up the technical foundations to understand and implement modern AI methods for drug discovery:
 
 - **Blog 2**: We'll explore how to represent molecules and proteins for machine learning—from simple text strings to sophisticated graph structures
-- **Blog 3**: We'll dive deep into graph neural networks and how they learn from molecular structures to predict properties
-- **Blog 4**: We'll examine generative models that can create entirely new molecules, including transformers and reinforcement learning approaches
-- **Blog 5**: We'll explore the cutting edge—diffusion models that generate 3D molecular structures optimized for binding to specific proteins
+- **Blog 3**: We'll examine AlphaFold and the protein structure prediction revolution—how transformers and attention mechanisms solved a 50-year-old problem and why accurate structures are essential for drug design
+- **Blog 4**: We'll dive deep into graph neural networks and how they learn from molecular structures to predict properties
+- **Blog 5**: We'll examine generative models that can create entirely new molecules, including transformers and reinforcement learning approaches
+- **Blog 6**: We'll explore the cutting edge—diffusion models that generate 3D molecular structures optimized for binding to specific proteins
+
 
 Each post will balance theory with practical implementation details, helping you build an intuition for both the biological problems and the computational solutions.
 
 The intersection of AI and drug discovery is one of the most exciting frontiers in both fields. By understanding the biological foundations covered here, we'll be well-equipped to appreciate how modern machine learning methods are accelerating the search for new medicines.
+
+## Image Credits
+
+All images in this post are copied from the course General, Organic, and Biochemistry with Problems, Case Studies, and Activities by LibreTexts licensed under CC BY 4.0. [^6]
+
 
 ## References
 
@@ -318,7 +355,5 @@ The intersection of AI and drug discovery is one of the most exciting frontiers 
 [^3]: Polishchuk, P. G., Madzhidov, T. I., & Varnek, A. (2013). Estimation of the size of drug-like chemical space based on GDB-17 data. *Journal of Computer-Aided Molecular Design*, 27(8), 675-679.
 
 [^4]: Jumper, J., Evans, R., Pritzel, A., et al. (2021). Highly accurate protein structure prediction with AlphaFold. *Nature*, 596(7873), 583-589.
-
-[^5]: Paul, S. M., Mytelka, D. S., Dunwiddie, C. T., et al. (2010). How to improve R&D productivity: the pharmaceutical industry's grand challenge. *Nature Reviews Drug Discovery*, 9(3), 203-214.
 
 [^6]: General, Organic, and Biochemistry with Problems, Case Studies, and Activities by LibreTexts is licensed under CC BY 4.0. Available at: https://chem.libretexts.org/Courses/Roosevelt_University/General_Organic_and_Biochemistry_with_Problems_Case_Studies_and_Activities.
