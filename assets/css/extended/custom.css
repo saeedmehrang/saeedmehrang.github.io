@@ -1,3 +1,43 @@
 .profile_inner p {
     margin-bottom: 1em; /* Adjust this value as needed */
 }
+
+/* Blog grid layout - responsive columns */
+.blog-grid {
+    display: grid;
+    gap: var(--gap);
+    margin-bottom: var(--gap);
+    grid-template-columns: 1fr;
+}
+
+/* Tablet: 2 columns */
+@media screen and (min-width: 768px) {
+    .blog-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Desktop: 3 columns */
+@media screen and (min-width: 1024px) {
+    .blog-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Adjust post-entry for grid layout */
+.blog-grid .post-entry {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Ensure entry-link covers the entire card */
+.blog-grid .post-entry .entry-link {
+    z-index: 1;
+}
+
+/* Make footer stick to bottom of card */
+.blog-grid .post-entry .entry-content {
+    flex-grow: 1;
+}
