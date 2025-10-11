@@ -1,9 +1,14 @@
 ---
 title: "Computational Drug Discovery Part 1: Molecules, Proteins, and the Drug Discovery Challenge"
 date: 2025-10-11
+author: Saeed Mehrang
 draft: false
 description: "An introduction to molecular biology fundamentals and the computational drug discovery pipeline, exploring why finding new drugs is one of the most challenging problems in science and medicine."
+summary: "An introduction to the fundamental biology behind drug discovery. We explore atoms, bonds, functional groups, and proteins, then examine the computational drug discovery pipeline from target identification to clinical trials. Learn why finding effective drugs is extraordinarily difficult and how AI is transforming this challenge."
 tags: ["drug-discovery", "computational-biology", "machine-learning", "proteins", "molecular-biology"]
+cover:
+  image: "quaternary-structure.png"
+  image_alt: "quaternary-structure"
 series: ["Computational Drug Discovery"]
 series_order: 1
 showToc: true
