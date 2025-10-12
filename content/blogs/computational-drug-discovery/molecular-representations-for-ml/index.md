@@ -16,7 +16,7 @@ disableAnchoredHeadings: false
 
 In [Blog 1](/blogs/computational-drug-discovery/basic-molecular-biology/), we learned that proteins are chains of amino acids that fold into precise 3D shapes, and drugs are small molecules with specific functional groups that bind to protein pockets. We explored how structure determines function and why finding the right drug molecule is extraordinarily challenging.
 
-But here's the fundamental problem: machine learning models don't understand chemistry they process numbers. A neural network can't look at a molecular structure diagram and intuitively grasp that a hydroxyl group makes a molecule more water-soluble, or that an aromatic ring provides rigidity. Before we can apply powerful ML algorithms to drug discovery, we need to answer a crucial question: **How do we translate molecular structures into a form that neural networks can learn from?**
+But here's the fundamental problem: machine learning models don't understand chemistry, they process numbers. A neural network can't look at a molecular structure diagram and intuitively grasp that a hydroxyl group makes a molecule more water-soluble, or that an aromatic ring provides rigidity. Before we can apply powerful ML algorithms to drug discovery, we need to answer a crucial question: **How do we translate molecular structures into a form that neural networks can learn from?**
 
 This translation from chemistry to data is far from trivial, and the choices we make have dramatic effects on model performance. Unlike images (which naturally map to pixel arrays) or text (which can be tokenized into sequences), molecules have no single "natural" representation for computers. We must actively choose how to encode them, and each choice captures different aspects of chemistry while losing others.
 
@@ -40,11 +40,11 @@ Molecules present unique challenges that don't exist in typical machine learning
 
 **1. Permutation Invariance**: The same molecule can be described in countless equivalent ways. When we list atoms, the ordering is arbitrary "carbon-oxygen-carbon" describes the same molecule as "oxygen-carbon-carbon" if they have the same connectivity. Unlike a sentence where word order matters, molecular identity depends only on which atoms connect to which, not on how we label or traverse them. A good representation should either be **invariant** to these orderings (multiple descriptions map to the same representation) or **canonical** (we agree on one standard ordering).
 
-**2. 3D Conformational Flexibility**: Small molecules aren't rigid. They can rotate around single bonds, adopting different 3D shapes called conformers. Ethanol (drinking alcohol) can twist into many different spatial arrangements, all representing the same chemical compound. Do we represent one conformer? All of them? The lowest-energy one? This becomes critical when predicting binding drugs need the right 3D shape to fit into protein pockets.
+**2. 3D Conformational Flexibility**: Small molecules aren't rigid objects—they're more like flexible chains that can twist and bend. Think of a single bond between two carbon atoms like a hinge or a rotating joint. The molecule can spin around this bond, creating different 3D shapes called conformers, all while maintaining the same chemical formula and connectivity. Consider ethanol (the alcohol in drinks): it has a carbon-carbon single bond that can rotate freely. Imagine holding a molecular model—you could twist one end while keeping the other fixed, creating different spatial arrangements. The molecule might be stretched out, folded up, or somewhere in between. All these shapes are still ethanol—same atoms, same bonds—but different 3D geometries. This flexibility creates a dilemma for machine learning: which shape do we use to represent the molecule? Should we pick the lowest-energy conformer (the most stable shape)? Should we use all possible conformers? Or perhaps just the shape the molecule adopts when it binds to a protein? This becomes critical for drug discovery because binding depends on 3D shape fitting. A drug needs to fit into a protein's binding pocket like a key into a lock. If we represent the molecule in the wrong conformer—say, a stretched-out shape when it actually binds in a folded shape—our predictions will be wrong. It's like trying to predict whether a key will fit a lock while looking at the key bent at the wrong angle.
 
 **3. Size Variability**: Molecules range dramatically in size. Aspirin has just 21 atoms; proteins can have tens of thousands. Most ML architectures prefer fixed-size inputs. How do we handle this variability? Do we pad small molecules? Truncate large ones? Use architectures that naturally handle variable sizes?
 
-**4. Chirality and Stereochemistry**: Mirror-image molecules (enantiomers) can have completely different biological effects. Thalidomide's tragic history illustrates this: one mirror form treated morning sickness, while the other caused severe birth defects. A molecule's representation must capture this 3D handedness, yet many simple encodings miss it entirely.
+**4. Chirality and Stereochemistry**: Some molecules are like your left and right hands—they're mirror images of each other but not identical. Try to superimpose your left hand onto your right hand and you'll see they don't match up perfectly, even though they have all the same parts. In chemistry, we call these mirror-image molecules enantiomers, and they exhibit a property called chirality (from the Greek word for "hand"). Here's the shocking part: these mirror-image molecules can have completely different biological effects, even though they have the exact same atoms connected in the exact same order. The only difference is their 3D spatial arrangement—one is the "left-handed" version and one is the "right-handed" version. The most tragic example is thalidomide, a drug prescribed in the 1950s-60s for morning sickness during pregnancy. One enantiomer (the right-handed form) safely relieved nausea and helped pregnant women feel better. But its mirror-image twin (the left-handed form) caused catastrophic birth defects, leading to thousands of babies born with severely malformed limbs. The two molecules were chemically identical on paper—same atoms, same bonds—but their opposite 3D handedness made one a helpful medicine and the other a devastating poison. This creates a major challenge for molecular representations: we must capture 3D handedness, not just which atoms connect to which. Many simple representations (like basic SMILES strings or simple fingerprints) only encode 2D connectivity—they're "blind" to the difference between left-handed and right-handed versions. It's like describing your hands by saying "five fingers attached to a palm"—technically correct, but missing the crucial fact that they're mirror images. For drug discovery, this blindness can be dangerous: if our representation can't distinguish enantiomers, our machine learning models can't either, and we might predict that a harmful molecule is safe.
 
 ### Desirable Properties in Representations
 
@@ -68,7 +68,7 @@ No single representation satisfies all these properties perfectly. The key is ch
 
 #### What is SMILES?
 
-SMILES (Simplified Molecular Input Line Entry System) represents molecules as text strings by linearizing their molecular graphs. Where a chemist might draw a 2D structure diagram, SMILES encodes the same information as a compact sequence of characters.
+SMILES (Simplified Molecular Input Line Entry System) represents molecules as text strings by linearizing their molecular graphs[^1]. Where a chemist might draw a 2D structure diagram, SMILES encodes the same information as a compact sequence of characters.
 
 The basic rules are intuitive:
 - Write atoms as their chemical symbols: C for carbon, O for oxygen, N for nitrogen
@@ -111,7 +111,7 @@ SMILES strings are sequences of characters, making them natural inputs for archi
 
 - **Tokenize** the string: each character or multi-character token becomes a unit
 - **Apply sequence models**: Recurrent Neural Networks (RNNs), LSTMs, or Transformers process the token sequence
-- **Treat like machine translation**: Models can learn to map SMILES � properties or SMILES � modified SMILES
+- **Treat like machine translation**: Models can learn to map _SMILES to properties_ or _SMILES to modified SMILES_
 
 Pre-trained models like **ChemBERTa** and **MolGPT** are trained on millions of SMILES strings, learning chemical "grammar" and patterns. These can be fine-tuned for downstream tasks like predicting drug properties or generating novel molecules.
 
@@ -148,7 +148,7 @@ Think of it like a checklist: Does this molecule have an aromatic ring? (bit 47 
 
 The advantage is **interpretability** you know exactly what each bit means. The disadvantage is **limited resolution** only 166 features might miss important patterns.
 
-**ECFP/Morgan Fingerprints** (Extended Connectivity Fingerprints): A more sophisticated, hash-based approach. For each atom, the algorithm:
+**ECFP/Morgan Fingerprints** (Extended Connectivity Fingerprints): A more sophisticated, hash-based approach[^2]. For each atom, the algorithm:
 1. Looks at its immediate neighbors (radius 1)
 2. Encodes the local environment (atom types, bond types)
 3. Hashes this pattern to a bit position
@@ -158,7 +158,7 @@ This captures "what's within 1 bond of each atom," "what's within 2 bonds," etc.
 
 The hashing process creates a **collision problem**: different substructures might hash to the same bit position, causing information loss. However, with 2048 bits, collisions are relatively rare for typical drug-like molecules.
 
-#### Example
+#### Example: Simple Binary Coding
 
 Consider **caffeine** (the stimulant in coffee). Setting bits based on features:
 - Bit indicating "has aromatic ring": 1
@@ -170,13 +170,46 @@ Consider **caffeine** (the stimulant in coffee). Setting bits based on features:
 
 The resulting vector `[0,1,0,0,1,1,0,0,...]` (2048 bits total) serves as caffeine's fingerprint.
 
+#### Example 2: How ECFP Hashing Works
+
+Let's walk through how ECFP generates a fingerprint for a simple molecule like ethanol (CCO). What gets hashed? The algorithm encodes each atom's local environment as a numerical identifier (combining atomic numbers, bond types, and neighbor information into an integer), then applies a hash function to map that integer to a bit position (0-2047). Below, I use text descriptions for human readability, but the computer actually works with numerical encodings: 
+
+**Step 1: Radius 0 (just the atom itself)**
+
+- Atom 1 (Carbon): Environment = {atomic number: 6, degree: 4, implicit H: 3} → Encode as integer (e.g., 6403) → Hash(6403) → maps to bit 457
+- Atom 2 (Carbon): Environment = {atomic number: 6, degree: 3, implicit H: 2, bonded to O} → Encode as integer (e.g., 6328) → Hash(6328) → maps to bit 1203
+- Atom 3 (Oxygen): Environment = {atomic number: 8, degree: 2, implicit H: 1} → Encode as integer (e.g., 8021) → Hash(8021) → maps to bit 89
+
+
+Set bits 457, 1203, and 89 to 1.
+
+**Step 2: Radius 1 (atom + immediate neighbors)**
+
+- Atom 1: Environment = {C with neighbors: [C(bonded to O), H, H, H]} → Encode as integer (e.g., 6000782) → Hash(6000782) → maps to bit 782
+- Atom 2: Environment = {C with neighbors: [C, O, H, H]} → Encode as integer (e.g., 6008654) → Hash(6008654) → maps to bit 1654
+- Atom 3: Environment = {O with neighbors: [C(bonded to another C), H]} → Encode as integer (e.g., 8006234) → Hash(8006234) → maps to bit 234
+
+
+Set bits 782, 1654, and 234 to 1. 
+
+
+**Step 3: Radius 2 (atom + neighbors within 2 bonds)**
+
+- Atom 1: Environment = {C with extended neighborhood including O two bonds away} → Encode as integer (e.g., 60008782) → Hash(60008782) → maps to bit 1891
+- And so on for other atoms...
+
+
+Set additional bits based on these larger neighborhoods. 
+
+**Final result:** A 2048-bit vector where bits [89, 234, 457, 782, 1203, 1654, 1891, ...] are set to 1, and all others are 0. The beauty of this approach is that **identical molecular neighborhoods produce identical hash values**, allowing the fingerprint to capture structural similarity. Two molecules that both contain "oxygen bonded to carbon bonded to carbon" will have that same numerical encoding, which hashes to the same bit position, indicating they share that substructure. **The collision issue:** If two **different** substructures happen to encode to integers that hash to the same bit position (say, both map to bit 782), we lose the ability to distinguish them. But with 2048 bits available and typical drug molecules having dozens to hundreds of unique substructures, the probability of many collisions is low.
+
 #### ML Usage
 
 Fingerprints work with **classical machine learning**:
 - **Input to Random Forests, SVMs, or logistic regression** for property prediction
 - **Similarity search**: Compare fingerprints using the Tanimoto coefficient (also called Jaccard similarity):
   ```
-  Similarity = (bits set in both) / (bits set in either)
+  Similarity = (Number of bits set in both) / (Number of bits set in either)
   ```
   Values range from 0 (no shared bits) to 1 (identical). Molecules with Tanimoto > 0.85 are typically very similar.
 - **Fast screening**: Compute fingerprints once, then quickly search millions of molecules for similar ones
@@ -192,7 +225,7 @@ Fingerprints work with **classical machine learning**:
 **Disadvantages**:
 - **Fixed length limits information capacity**: Only 2048 bits to describe a molecule with potentially thousands of atoms
 - **Hash collisions lose information**: Different substructures mapping to the same bit creates ambiguity
-- **Not invertible**: Given a fingerprint, you cannot reconstruct the original molecule
+- **Not invertible**: Given a fingerprint, you cannot reconstruct the original molecule. The fingerprint is a lossy compression designed for similarity comparison, not for reconstruction. [bit 457=1, bit 782=1, bit 1203=1...] → you know it has certain substructures, but you can't reconstruct the full molecule. It's like knowing "this person has brown hair and blue eyes" - you can't recreate their exact face from that.
 - **Doesn't capture 3D geometry**: Purely 2D structural patterns
 - **Somewhat outdated**: Modern graph neural networks generally outperform fingerprint-based models for property prediction
 
@@ -208,18 +241,24 @@ This isn't an analogy or approximation it's a direct structural correspondence. 
 
 Graphs naturally handle key molecular properties:
 - **Variable size**: Graphs can have any number of nodes; no padding or truncation needed
-- **Permutation invariance**: Relabeling nodes doesn't change the graph structure (graph isomorphism)
+- **Permutation invariance**: Relabeling nodes doesn't change the graph structure (graph isomorphism -- a permutation-invariant function will produce the same output for two graphs that are identical but have their nodes listed in a different order)
 - **Explicit connectivity**: Bond patterns are directly represented as edge structure
 
 This makes graph representations ideal for **Graph Neural Networks** (GNNs) neural architectures that operate directly on graph-structured data. We'll dive deep into GNNs in Blog 4; here we'll focus on how to encode molecular graphs.
 
 #### Node Features: Encoding Atoms
 
-For each atom (node), we store a feature vector capturing its chemical properties. Common features include:
+For each atom (node), we store a feature vector capturing its chemical properties. Before listing these features, let's clarify two important concepts:
+
+**Orbitals**: An orbital is a region of space around an atom's nucleus where there is the highest probability of finding an electron. Unlike the old idea of electrons orbiting the nucleus like planets, an orbital describes a three-dimensional shape—like a sphere (s orbital) or a dumbbell (p orbital)—that represents the electron's "home." Each orbital can hold a maximum of two electrons.
+
+**Hybridization**: Hybridization is simply the idea of mixing an atom's existing electron "homes," or atomic orbitals (like s and p), to create new, better ones called hybrid orbitals. Atoms do this just before they form bonds. The reason they mix is that the original orbitals often don't point in the right direction or aren't all the same energy, which wouldn't result in the equal, perfectly-spaced bonds we observe in many molecules, like methane. By mixing, the atom gets a set of new, identical orbitals that are perfectly shaped and oriented to minimize electron repulsion, allowing for the strong, predictable structures and bond angles seen in nature. This mixing explains the observed molecular geometry and the formation of equivalent, strong chemical bonds that wouldn't be possible with the unmixed orbitals. For example, sp³ hybridization creates four equivalent orbitals arranged in a tetrahedral geometry, while sp² creates three orbitals in a planar arrangement.
+
+Common node features include:
 
 1. **Atomic number** (element type): Carbon = 6, Nitrogen = 7, Oxygen = 8, etc. Often one-hot encoded: [0,0,0,0,0,1,0,0,...] for carbon
 2. **Formal charge**: -2, -1, 0, +1, +2 (most atoms are neutral; some carry charges)
-3. **Hybridization**: sp, sp�, sp� (determines geometry sp� is tetrahedral, sp� is planar)
+3. **Hybridization**: sp, sp², sp³ (determines geometry—sp³ is tetrahedral, sp² is planar)
 4. **Aromaticity**: Boolean flag indicating if atom is part of an aromatic ring
 5. **Number of hydrogen atoms**: Hydrogens are often implicit in molecular graphs
 6. **Ring membership**: Is the atom part of any ring? If so, what size?
@@ -232,7 +271,10 @@ The exact features depend on the task predicting toxicity might need charge info
 
 #### Edge Features: Encoding Bonds
 
-For each bond (edge), we similarly store features:
+For each bond (edge), we similarly store features, but first let's clarify one important concept:
+
+
+**conjugation:** In the context of encoding bonds, conjugation simply means that a bond is part of a chain where single and multiple bonds (double or triple) alternate. For instance, a double bond followed by a single bond followed by another double bond (C=C-C=C) is a conjugated system. This alternating pattern allows the electrons in the multiple bonds to be freely delocalized, or spread out, across the entire chain of atoms instead of being stuck between just two atoms. This delocalization is important because it makes the molecule more stable and often influences its color, energy levels, and reactivity. The "Conjugation" feature is a yes/no indicator that tells a computer model whether a bond is involved in this special, stable alternating system.
 
 1. **Bond type**: Single, double, triple, aromatic (often one-hot encoded)
 2. **Stereochemistry**: Cis/trans (E/Z) configuration for double bonds
@@ -240,45 +282,57 @@ For each bond (edge), we similarly store features:
 4. **Conjugation**: Is the bond part of a conjugated system?
 5. **Rotatable**: Can the bond rotate freely? (Important for conformational flexibility)
 
-#### Example: Caffeine as a Graph
 
-Let's encode **caffeine** explicitly:
 
-**Molecular formula**: C�H��N�O�
+## Example: Caffeine as a Graph (Improved)
 
-**Node list** (simplified):
-```
-Node 0: C (sp2, aromatic, in 5-membered ring)
-Node 1: N (sp2, aromatic, in 5-membered ring)
-Node 2: C (sp2, aromatic, in 5-membered ring)
-Node 3: N (sp2, aromatic, in 5-membered ring)
-Node 4: C (sp2, aromatic, in 5-membered ring)
-Node 5: C (sp2, aromatic, in 6-membered ring)
-Node 6: N (sp2, aromatic, in 6-membered ring)
-... (continuing for all atoms)
-```
+Let's encode **caffeine** ($\text{C}_8\text{H}_{10}\text{N}_4\text{O}_2$) with a focus on chemical accuracy for use in a GNN.
 
-**Edge list**:
-```
-Edge (0,1): aromatic bond
-Edge (1,2): aromatic bond
-Edge (2,3): aromatic bond
-Edge (3,4): aromatic bond
-Edge (4,0): aromatic bond (closes 5-membered ring)
-Edge (0,5): aromatic bond (connects to 6-membered ring)
-... (continuing for all bonds)
-```
+### 1. Node List (Selection of Key Atoms)
 
-**Adjacency matrix**: A matrix where entry (i,j) = 1 if atoms i and j are bonded:
-```
-     0  1  2  3  4  5  6 ...
-0 [  0  1  0  0  1  1  0 ...]
-1 [  1  0  1  0  0  0  0 ...]
-2 [  0  1  0  1  0  0  0 ...]
-...
-```
+| Node ID | Atom Type | Hybridization | Ring Membership | Other Features |
+| :---: | :---: | :---: | :---: | :---: |
+| **C1** | C | $\text{sp}^2$ | 6-membered | Part of $\text{C=O}$ group |
+| **C2** | C | $\text{sp}^2$ | 5-membered | Part of $\text{N-C-N}$ system |
+| **N3** | N | $\text{sp}^2$ | 6-membered | Attached to $\text{CH}_3$ |
+| **O4** | O | $\text{sp}^2$ | No | Double bonded to C1 |
+| **H5** | H | $\text{sp}^3$ | No | Bonded to C2 |
+| **Me-C**| C | $\text{sp}^3$ | No | Part of methyl group ($\text{CH}_3$) |
+| ... | (Continuing for all 24 atoms) | ... | ... | ... |
 
-This graph representation can be fed into GNNs, which learn to aggregate information from neighboring atoms through message-passing algorithms.
+***
+
+### 2. Edge List (Selection of Key Bonds)
+
+| Edge (i, j) | Bond Type | Conjugation | Aromatic | Rotatable |
+| :---: | :---: | :---: | :---: | :---: |
+| **(C1, N3)** | Single | Yes | No | No (in ring) |
+| **(C1, O4)** | **Double** | No | No | No (Double) |
+| **(N3, C-Me)**| **Single** | No | No | **Yes** (Single, non-ring) |
+| **(C2, H5)** | **Single** | No | No | No (no rotation around single atom) |
+| **(C2, C-ring)** | Double | Yes | No | No (Double) |
+| ... | (Continuing for all bonds) | ... | ... | ... |
+
+***
+
+### 3. Adjacency Matrix
+
+A matrix where entry $\mathbf{A}_{i,j} = 1$ if atoms $i$ and $j$ are bonded (regardless of bond type).
+
+$$
+\begin{array}{c|ccccccc}
+ & \text{C1} & \text{C2} & \text{N3} & \text{O4} & \text{H5} & \dots \\
+\hline
+\text{C1} & 0 & 0 & 1 & 1 & 0 & \dots \\
+\text{C2} & 0 & 0 & 0 & 0 & 1 & \dots \\
+\text{N3} & 1 & 0 & 0 & 0 & 0 & \dots \\
+\text{O4} & 1 & 0 & 0 & 0 & 0 & \dots \\
+\text{H5} & 0 & 1 & 0 & 0 & 0 & \dots \\
+\dots & \dots & \dots & \dots & \dots & \dots & 0
+\end{array}
+$$
+***
+This graph representation, with accurate bond types (including the non-aromatic double bonds) and conjugation status (applied to the delocalized $\text{N-C-N}$ ring system), provides a more robust input for GNNs learning chemical properties.
 
 #### ML Usage
 
@@ -288,7 +342,7 @@ Graph representations enable **Graph Neural Networks**:
 - **Variable-size input**: Graphs naturally accommodate molecules of any size
 - **Expressive**: GNNs can learn complex structure-property relationships that simpler representations miss
 
-Popular GNN architectures include **Graph Convolutional Networks (GCN)**, **Graph Attention Networks (GAT)**, **Message Passing Neural Networks (MPNN)**, and **Graph Isomorphism Networks (GIN)**. We'll explore these in detail in Blog 4.
+Popular GNN architectures include **Graph Convolutional Networks (GCN)**, **Graph Attention Networks (GAT)**, **Message Passing Neural Networks (MPNN)**[^3], and **Graph Isomorphism Networks (GIN)**. We'll explore these in detail in Blog 4.
 
 #### Pros and Cons
 
@@ -367,7 +421,7 @@ This ambiguity is a core challenge in 3D molecular ML.
 
 Modern neural architectures handle 3D geometry while respecting physical symmetries:
 
-**SE(3)-Equivariant Networks**: These models respect rotational and translational symmetries if you rotate or translate the input molecule, the output transforms predictably. Architectures like **SchNet**, **DimeNet**, **PaiNN**, and **EGNN** explicitly encode 3D distances and angles in ways that are equivariant to the Euclidean group SE(3).
+**SE(3)-Equivariant Networks**: These models respect rotational and translational symmetries—if you rotate or translate the input molecule, the output transforms predictably. Architectures like **SchNet**[^4], **DimeNet**, **PaiNN**, and **EGNN** explicitly encode 3D distances and angles in ways that are equivariant to the Euclidean group SE(3).
 
 **3D Message Passing**: Extends standard GNN message passing by incorporating 3D distances. Edge features include not just bond types but actual spatial distances, enabling models to learn how 3D geometry affects properties.
 
@@ -449,7 +503,7 @@ Just like SMILES strings for molecules, protein sequences can be treated as **te
 
 #### ML Encodings for Sequences
 
-**One-Hot Encoding**: Represent each amino acid as a 20-dimensional binary vector. Alanine = [1,0,0,...,0], Cysteine = [0,1,0,...,0], etc. A 300-residue protein becomes a 300 � 20 matrix.
+**One-Hot Encoding**: Represent each amino acid as a 20-dimensional binary vector. Alanine = [1,0,0,...,0], Cysteine = [0,1,0,...,0], etc. A 300-residue protein becomes a 300 x 20 matrix.
 
 **Position-Specific Scoring Matrices (PSSMs)**: Instead of just the amino acid at each position, encode evolutionary information. By aligning homologous protein sequences across species, we can compute how conserved each position is and which substitutions are tolerated. Positions critical for function show strong conservation; variable positions are less important.
 
@@ -457,10 +511,10 @@ Just like SMILES strings for molecules, protein sequences can be treated as **te
 
 **Pre-trained Protein Language Models**: Large transformer models trained on millions of protein sequences:
 - **ProtBERT**: BERT architecture applied to protein sequences
-- **ESM (Evolutionary Scale Modeling)**: Models trained on 250 million sequences, learning deep patterns of protein structure and function
+- **ESM (Evolutionary Scale Modeling)**: Models trained on 250 million sequences, learning deep patterns of protein structure and function[^5]
 - **ProGen**: GPT-style generative models for protein sequences
 
-These models learn "protein grammar" which amino acid sequences are likely, how mutations affect function, and even predict 3D structure from sequence alone (as AlphaFold does, which we'll explore in Blog 3).
+These models learn "protein grammar"—which amino acid sequences are likely, how mutations affect function, and even predict 3D structure from sequence alone (as AlphaFold[^6] does, which we'll explore in Blog 3).
 
 #### Pros and Cons
 
@@ -483,9 +537,9 @@ When 3D structure is available (from X-ray crystallography, cryo-EM, or AlphaFol
 
 **All-Atom Coordinates**: List (x,y,z) positions for every atom. Full resolution but massive 5,000+ atoms for a medium-sized protein. Most atoms are hydrogens, which add little information but much computational cost.
 
-**Backbone Atoms Only**: Proteins have a repeating backbone (N-C�-C-O) with variable sidechains. Representing just the backbone (especially just the C� atoms) captures the overall fold while reducing size by ~90%. This is sufficient for many tasks since the backbone determines secondary and tertiary structure.
+**Backbone Atoms Only**: Proteins have a repeating backbone (N-Cα-C-O) with variable sidechains. Representing just the backbone (especially just the Cα atoms -- the central carbon atom in an amino acid) captures the overall fold while reducing size by ~90%. This is sufficient for many tasks since the backbone determines secondary and tertiary structure.
 
-**Contact Maps**: Binary 2D matrix where entry (i,j) = 1 if residues i and j are spatially close (within ~8 �) in 3D, 0 otherwise:
+**Contact Maps**: Binary 2D matrix where entry (i,j) = 1 if residues i and j are spatially close (within ~8 Å -- Angstrom distance) in 3D, 0 otherwise:
 ```
      Res1  Res2  Res3  Res4  Res5
 Res1   1     1     0     0     0
@@ -496,7 +550,7 @@ Res5   0     0     0     1     1
 ```
 This 2D representation of 3D structure shows which parts of the sequence come close in space (even if far apart in sequence). Contact maps are easier to predict than full 3D coordinates AlphaFold essentially predicts contact maps (distance maps) which are then used to reconstruct 3D structures.
 
-**Distance Matrices**: Instead of binary contacts, store actual distances between all residue pairs (typically using C�-C� distances). This preserves more information than binary contacts.
+**Distance Matrices**: Instead of binary contacts, store actual distances between all residue pairs (typically using Cα-Cα distances). This preserves more information than binary contacts.
 
 **Surface Representations**: For understanding binding interfaces, represent the protein's solvent-accessible surface as a point cloud or mesh. This captures the shape of binding pockets without interior atoms.
 
@@ -508,7 +562,7 @@ This 2D representation of 3D structure shows which parts of the sequence come cl
 
 **Graph Representations**: Residues as nodes, edges connecting spatially proximal residues (even if far in sequence). This captures long-range interactions in the folded structure. GNNs then learn on the residue-residue contact graph.
 
-**Point Cloud Networks**: Treat C� atoms as a 3D point cloud with residue type features. PointNet and related architectures process these for structure classification and binding site prediction.
+**Point Cloud Networks**: Treat Cα atoms as a 3D point cloud with residue type features. PointNet and related architectures process these for structure classification and binding site prediction.
 
 **SE(3)-Equivariant Networks**: Same geometric deep learning approaches used for small molecules apply to proteins SchNet, EGNN, and others respect rotational symmetry.
 
@@ -540,58 +594,6 @@ Common features for encoding binding sites:
 - **Binding affinity prediction**: Predicting how tightly a molecule binds
 - **De novo drug design**: Generating molecules optimized for a specific pocket's shape and chemistry
 
-## Practical Considerations
-
-### Tools and Libraries
-
-Several key software ecosystems support molecular representations:
-
-**RDKit**: The industry-standard open-source toolkit for cheminformatics. Handles SMILES parsing, molecular sanitization, fingerprint generation, 2D depiction, and much more. Essential for any small molecule work.
-
-**DeepChem**: High-level ML library specifically for drug discovery. Provides data loaders, featurizers (representation converters), and model implementations. Integrates with TensorFlow and PyTorch.
-
-**PyTorch Geometric (PyG)** and **Deep Graph Library (DGL)**: Leading frameworks for graph neural networks. Convert molecular graphs into tensors and provide GNN layer implementations.
-
-**OpenMM** and **MDTraj**: Molecular dynamics simulation and trajectory analysis. Generate 3D conformers and analyze structural ensembles.
-
-**Biopython**: Python tools for biological computation, including protein sequence/structure parsing, alignment, and feature extraction.
-
-**Open Babel**: Converts between hundreds of chemical file formats. Useful for integrating diverse data sources.
-
-### Data Sources
-
-Large public databases provide training data:
-
-**ChEMBL**: Bioactivity database with millions of compound-protein interactions, binding affinities, and functional assays. Curated from medicinal chemistry literature.
-
-**PubChem**: Over 100 million chemical structures with associated properties. Searchable by structure, name, or properties.
-
-**Protein Data Bank (PDB)**: Repository of 3D protein structures, including many protein-ligand complexes showing drugs bound to targets.
-
-**UniProt**: Comprehensive protein sequence database with functional annotations.
-
-**ZINC**: Database of commercially available compounds for virtual screening. Useful for finding molecules to actually purchase and test.
-
-**GDB-13/GDB-17**: Enumerated databases of all possible small organic molecules up to a certain size. Used for theoretical studies of chemical space.
-
-### Preprocessing Pipelines
-
-Raw data from databases often requires cleaning and standardization:
-
-**For molecules**:
-- **Sanitization**: Remove invalid structures, check valence rules
-- **Protonation state assignment**: Adjust charges for physiological pH (7.4)
-- **Tautomer standardization**: Pick canonical form when multiple tautomers exist
-- **Salt stripping**: Remove counterions (Na+, Cl-) that don't affect activity
-- **Stereochemistry completion**: Assign undefined stereocenters
-
-**For proteins**:
-- **Structure alignment**: Superpose proteins for comparison
-- **Missing residue modeling**: Fill gaps in experimental structures
-- **Protonation**: Add hydrogens at physiological pH
-- **Binding site extraction**: Define and crop pocket regions
-
-Proper preprocessing is critical "garbage in, garbage out" applies strongly to molecular ML.
 
 ## Key Takeaways
 
@@ -621,39 +623,18 @@ The representations we've covered here form the foundation for everything that f
 - Remember how **functional groups determine molecular behavior**? In fingerprints, we explicitly check for these functional groups. In graph representations, node features encode them. The chemical principles map directly to our data structures.
 - We learned that **protein structure determines function**. Sequence representations capture the primary structure, while 3D representations encode tertiary structure. Different tasks require different structural levels.
 
-**Looking forward**:
-- **Blog 3 (AlphaFold & Protein Structure Prediction)**: AlphaFold uses sequence representations with positional encodings and multiple sequence alignments (PSSMs capturing evolution). Its output is a distance matrix (2D representation of 3D structure) refined into full 3D coordinates. Understanding these representations explains how Transformers can predict geometry from text.
-
-- **Blog 4 (Graph Neural Networks)**: Now that we understand molecular graphs nodes, edges, features, adjacency matrices we'll see how GNNs process them. Message passing aggregates information along edges, enabling models to learn from molecular topology.
-
-- **Blog 5 (Generative Models)**: Generative models can operate in different representational spaces. Some generate SMILES strings autoregressively (character by character). Others generate molecular graphs directly (adding nodes and edges). The representation determines what the model creates and how we ensure chemical validity.
-
-- **Blog 6 (3D Generative Models & Docking)**: Advanced models generate molecules in 3D, directly placing atoms in space while respecting SE(3) symmetries. We'll also see how docking algorithms use 3D protein and ligand representations to predict binding poses and affinities.
-
-Each of these later topics builds on the representational foundations we've established here. Whether you're training a GNN to predict toxicity, using AlphaFold to get a protein structure, or generating novel drug candidates, you're ultimately manipulating one of these representations SMILES strings, fingerprints, graphs, or 3D geometries.
-
-The key insight is that **representation is not just a preprocessing step it fundamentally shapes what models can learn**. A model operating on 2D graphs cannot predict chirality-dependent effects. A SMILES-based model struggles with molecules containing complex ring systems. Choosing the right representation is as important as choosing the right architecture.
-
 In the next post, we'll see how AlphaFold revolutionized protein structure prediction by combining sequence representations with powerful Transformer architectures, solving a 50-year-old challenge and enabling structure-based drug design at unprecedented scale.
 
 ## References
 
-1. Weininger, D. (1988). SMILES, a chemical language and information system. *Journal of Chemical Information and Computer Sciences*, 28(1), 31-36.
+[^1]: Weininger, D. (1988). SMILES, a chemical language and information system. *Journal of Chemical Information and Computer Sciences*, 28(1), 31-36.
 
-2. Rogers, D., & Hahn, M. (2010). Extended-connectivity fingerprints. *Journal of Chemical Information and Modeling*, 50(5), 742-754.
+[^2]: Rogers, D., & Hahn, M. (2010). Extended-connectivity fingerprints. *Journal of Chemical Information and Modeling*, 50(5), 742-754.
 
-3. Duvenaud, D. K., et al. (2015). Convolutional networks on graphs for learning molecular fingerprints. *Advances in Neural Information Processing Systems*, 28.
+[^3]: Gilmer, J., et al. (2017). Neural message passing for quantum chemistry. *Proceedings of the International Conference on Machine Learning*, 1263-1272.
 
-4. Gilmer, J., et al. (2017). Neural message passing for quantum chemistry. *Proceedings of the International Conference on Machine Learning*, 1263-1272.
+[^4]: Schütt, K. T., et al. (2017). SchNet: A continuous-filter convolutional neural network for modeling quantum interactions. *Advances in Neural Information Processing Systems*, 30.
 
-5. Sch�tt, K. T., et al. (2017). SchNet: A continuous-filter convolutional neural network for modeling quantum interactions. *Advances in Neural Information Processing Systems*, 30.
+[^5]: Rives, A., et al. (2021). Biological structure and function emerge from scaling unsupervised learning to 250 million protein sequences. *Proceedings of the National Academy of Sciences*, 118(15), e2016239118.
 
-6. Unke, O. T., & Meuwly, M. (2019). PhysNet: A neural network for predicting energies, forces, dipole moments, and partial charges. *Journal of Chemical Theory and Computation*, 15(6), 3678-3693.
-
-7. Jumper, J., et al. (2021). Highly accurate protein structure prediction with AlphaFold. *Nature*, 596(7873), 583-589.
-
-8. Rives, A., et al. (2021). Biological structure and function emerge from scaling unsupervised learning to 250 million protein sequences. *Proceedings of the National Academy of Sciences*, 118(15), e2016239118.
-
-9. Landrum, G. (2016). RDKit: Open-source cheminformatics. *https://www.rdkit.org*
-
-10. Wu, Z., et al. (2018). MoleculeNet: a benchmark for molecular machine learning. *Chemical Science*, 9(2), 513-530.
+[^6]: Jumper, J., et al. (2021). Highly accurate protein structure prediction with AlphaFold. *Nature*, 596(7873), 583-589.

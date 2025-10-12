@@ -53,6 +53,57 @@ Understanding functional groups is crucial because they determine:
 - How it interacts with proteins
 - How the body metabolizes and eliminates it
 
+## Chemical Bonds: The Forces That Hold Molecules Together
+
+### Single, Double, and Triple Bonds
+
+When atoms form covalent bonds, they can share different numbers of electron pairs, creating bonds of varying strength and flexibility.
+
+**Single bonds** are the most common type of covalent bond, where two atoms share one pair of electrons (two electrons total). Represented as a single line (C-C) in chemical structures, single bonds allow free rotation around the bond axis. This rotational freedom is crucial for molecular flexibility—it's why proteins can fold and why drug molecules can adjust their shape to fit into binding pockets. Examples include the C-C bonds in ethane or the C-O bond in alcohols. Single bonds are relatively long and weak compared to multiple bonds.
+
+**Double bonds** involve two pairs of shared electrons (four electrons total), represented as two parallel lines (C=C). These bonds are shorter and stronger than single bonds, and critically, they **do not allow free rotation**. The atoms are locked in place relative to each other, creating rigidity in molecular structures. The C=O double bond in carbonyl groups is one of the most important in biology—it appears in proteins (peptide bonds), DNA bases, and countless drug molecules. Double bonds also create the possibility of geometric isomers: two molecules with the same atoms but different spatial arrangements (cis vs trans configurations), which can have completely different biological activities. For exampel, see the two Stereoisomers of 2-Butene below,
+
+_cis-2-butene_ (with cis-Configuration): the two $CH_3$ groups are on the same side, and the two H atoms are also on the same side.
+
+
+```
+      CH3     CH3
+        \     /
+         C = C
+        /     \
+       H       H
+```
+
+
+_trans-2-butene_ (with trans-Configuration): the two $CH_3$ groups are on opposite sides (diagonally across the double bond), and the two H atoms are also on opposite sides.
+
+
+```
+      CH3     H
+        \     /
+         C = C
+        /     \
+       H       CH3
+```
+      
+
+**Triple bonds** share three pairs of electrons (six electrons total), shown as three parallel lines (C≡C or C≡N). These are the shortest and strongest covalent bonds, creating very rigid, linear geometries. Triple bonds are less common in biology than single or double bonds but appear in some drugs and natural products. The nitrile group (C≡N) is occasionally used in drug design for its metabolic stability and ability to form certain interactions with proteins.
+
+### Bond Order and Molecular Properties
+
+The number of shared electron pairs (bond order) directly affects molecular behavior:
+
+- **Bond length**: Triple bonds < double bonds < single bonds
+- **Bond strength**: Triple bonds > double bonds > single bonds  
+- **Reactivity**: Double and triple bonds are more reactive than single bonds, making them sites where chemical reactions often occur
+
+Understanding bond types is essential for drug discovery because they determine:
+- How rigid or flexible a molecule is (affecting binding)
+- Which parts of the molecule are chemically reactive (affecting metabolism)
+- How electrons are distributed (affecting interactions with proteins)
+
+When designing drugs, medicinal chemists carefully choose where to place single bonds (for flexibility) versus double bonds (for rigidity and specific geometry), optimizing the molecule's ability to bind its target while maintaining drug-like properties.
+
 ## Proteins: The Molecular Machines of Life
 
 ### What Are Proteins?
