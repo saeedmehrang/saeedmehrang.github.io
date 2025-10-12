@@ -11,7 +11,7 @@ series_order: 2
 showToc: true
 disableAnchoredHeadings: false
 cover:
-  image: "cover.jpg"
+  image: "cover.png"
   image_alt: "molecule sketch"
 ---
 
