@@ -1,11 +1,11 @@
 ---
 title: "Computational Drug Discovery Part 2: Molecular Representations for Machine Learning"
-date: 2025-10-11
+date: 2025-10-12
 draft: false
 author: Saeed Mehrang
 description: "Exploring how we transform molecules and proteins into data structures that machine learning algorithms can process from SMILES strings to molecular graphs to 3D geometries."
 summary: "Molecules are converted into data for ML using SMILES, fingerprints, molecular graphs, and 3D geometry. The trade-off is between compactness (SMILES/fingerprints) and richness (graphs/3D geometry). The representation choice fundamentally determines what models can learn about binding and performance in drug discovery."
-tags: ["drug-discovery", "machine-learning", "molecular-representations", "graph-neural-networks", "cheminformatics"]
+tags: ["drug-discovery", "machine-learning", "molecular-representations"]
 series: ["Computational Drug Discovery"]
 series_order: 2
 showToc: true
