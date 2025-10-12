@@ -4,12 +4,15 @@ date: 2025-10-11
 draft: false
 author: Saeed Mehrang
 description: "Exploring how we transform molecules and proteins into data structures that machine learning algorithms can process from SMILES strings to molecular graphs to 3D geometries."
-summary: "This blog explores how molecules and proteins are transformed into machine learning representations—from SMILES strings and fingerprints to molecular graphs and 3D geometries. We examine key trade-offs: SMILES and fingerprints are compact but limited; molecular graphs enable state-of-the-art GNNs; 3D representations capture geometry essential for binding but are computationally expensive. The key insight: representation choice fundamentally shapes what models can learn and determines performance in drug discovery applications."
+summary: "Molecules are converted into data for ML using SMILES, fingerprints, molecular graphs, and 3D geometry. The trade-off is between compactness (SMILES/fingerprints) and richness (graphs/3D geometry). The representation choice fundamentally determines what models can learn about binding and performance in drug discovery."
 tags: ["drug-discovery", "machine-learning", "molecular-representations", "graph-neural-networks", "cheminformatics"]
 series: ["Computational Drug Discovery"]
 series_order: 2
 showToc: true
 disableAnchoredHeadings: false
+cover:
+  image: "cover.jpg"
+  image_alt: "molecule sketch"
 ---
 
 ## Introduction
