@@ -1,6 +1,6 @@
 ---
 title: "Computational Drug Discovery Part 3: AlphaFold and the Protein Structure Prediction Revolution"
-date: 2025-10-12
+date: 2025-10-13
 draft: false
 summary: "How DeepMind's AlphaFold2 solved the 50-year grand challenge in biology -- the protein folding problem -- using transformers, evolutionary information, and geometric reasoning and what it means for drug discovery."
 tags: ["Computational Drug Discovery", "AlphaFold", "Deep Learning", "Protein Structure", "Transformers", "Machine Learning"]
