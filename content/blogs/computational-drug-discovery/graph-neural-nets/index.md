@@ -23,7 +23,7 @@ In our journey through computational drug discovery, we've built a substantial f
 - **Blog 2** explored molecular representations, showing that molecules can be encoded as SMILES strings, fingerprints, **molecular graphs**, or 3D coordinates
 - **Blog 3** covered AlphaFold2's revolutionary approach to protein structure prediction using evolutionary data, attention mechanisms, and geometric constraints
 
-Now we pivot to the other half of the drug discovery equation: **small molecules**the potential drugs themselves.
+Now we pivot to the other half of the drug discovery equation: **small molecules** the potential drugs themselves.
 
 ### The Challenge: Predicting Molecular Properties
 
@@ -43,7 +43,7 @@ Recall from Blog 2 that molecules are **literally graphs** in the mathematical s
 - **Nodes (vertices)** = atoms (with features: element type, charge, hybridization, aromaticity)
 - **Edges** = chemical bonds (with features: bond type, stereochemistry, conjugation)
 
-This isn't an analogyit's a direct structural correspondence. Graph theory notation perfectly captures molecular topology.
+This isn't an analogy it's a direct structural correspondence. Graph theory notation perfectly captures molecular topology.
 
 Moreover, molecular graphs have key properties that make them ideal for neural network processing:
 
@@ -61,7 +61,7 @@ This post is **technically focused** on building and implementing GNN systems:
 1. **Constructing molecular graphs from SMILES** using RDKit and PyTorch Geometric
 2. **Node and edge feature engineering**: what chemical information to encode and how
 3. **Message passing mechanics**: the core computational pattern of GNNs
-4. **Architecture variants**: GCN, GAT, MPNNunderstanding trade-offs
+4. **Architecture variants**: GCN, GAT, MPNN understanding trade-offs
 5. **Implementation details**: code for training GNNs on molecular property prediction tasks
 6. **Practical considerations**: batch processing, pooling strategies, and performance optimization
 
@@ -213,11 +213,11 @@ Atom 2 (O): 36 features
 1. **One-hot encodings** (vs. continuous values) allow the network to learn non-linear relationships specific to each category
 2. **Degree** captures bonding patterns (e.g., carbons typically have degree 4)
 3. **Formal charge** is crucial for electrostatic interactions with proteins
-4. **Hybridization** determines geometry (sp³ = tetrahedral, sp² = planar, sp = linear)
+4. **Hybridization** determines geometry (spï¿½ = tetrahedral, spï¿½ = planar, sp = linear)
 5. **Aromaticity** affects stability and binding (aromatic rings are common in drugs)
 6. **Hydrogens** affect polarity and size
 7. **Ring membership** correlates with rigidity
-8. **Chirality** is criticalenantiomers can have opposite biological effects (recall thalidomide from Blog 2)
+8. **Chirality** is critical enantiomers can have opposite biological effects (recall thalidomide from Blog 2)
 
 ### 2.3 Extracting Edge Features (Bond Properties)
 
@@ -365,9 +365,9 @@ Edge index shape: torch.Size([2, 42])
 
 **Understanding the Data Structure:**
 
-- `data.x`: Shape `[num_nodes, num_node_features]`  each row is an atom's feature vector
-- `data.edge_index`: Shape `[2, num_edges]`  each column `[i, j]` represents an edge from node `i` to node `j`
-- `data.edge_attr`: Shape `[num_edges, num_edge_features]`  each row corresponds to an edge in `edge_index`
+- `data.x`: Shape `[num_nodes, num_node_features]`   each row is an atom's feature vector
+- `data.edge_index`: Shape `[2, num_edges]`   each column `[i, j]` represents an edge from node `i` to node `j`
+- `data.edge_attr`: Shape `[num_edges, num_edge_features]`   each row corresponds to an edge in `edge_index`
 - We store **both directions** for each bond (42 edges for 21 bonds) to make message passing symmetric
 
 **Verification:**
@@ -429,7 +429,7 @@ Batch vector: tensor([0, 0, 0, ..., 0, 0, 0])
 ---
 ```
 
-**Key Insight:** PyG's batching creates a **single large disconnected graph** containing all molecules in the batch. The `batch` vector tracks which graph each node belongs tothis is used later for pooling operations.
+**Key Insight:** PyG's batching creates a **single large disconnected graph** containing all molecules in the batch. The `batch` vector tracks which graph each node belongs to this is used later for pooling operations.
 
 ---
 
@@ -477,7 +477,7 @@ Where:
 - $\sigma$ is an activation function (ReLU, ELU, etc.)
 - The node includes itself in the aggregation ($v \in \mathcal{N}(v) \cup \{v\}$)
 
-**Key Property:** GCN treats all neighbors **equally** (after degree normalization). This is simple but has limitationsnot all chemical bonds are equally important.
+**Key Property:** GCN treats all neighbors **equally** (after degree normalization). This is simple but has limitations not all chemical bonds are equally important.
 
 #### Implementation:
 
@@ -1246,10 +1246,10 @@ Recall the drug discovery pipeline from Blog 1. Here's where GNNs fit:
 - **Toxicity prediction**: GNNs identify potential toxicity issues early, reducing animal testing
 
 **The Complete Pipeline:**
-1. **AlphaFold** (Blog 3) ’ Predict protein target structure
-2. **GNNs** (This blog) ’ Generate and evaluate drug candidates
-3. **Molecular Docking** (Blog 6) ’ Predict binding pose and affinity
-4. **Generative Models** (Blog 5) ’ Design optimized molecules
+1. **AlphaFold** (Blog 3) ï¿½ Predict protein target structure
+2. **GNNs** (This blog) ï¿½ Generate and evaluate drug candidates
+3. **Molecular Docking** (Blog 6) ï¿½ Predict binding pose and affinity
+4. **Generative Models** (Blog 5) ï¿½ Design optimized molecules
 
 ### 5.3 Advanced Applications (Brief Overview)
 
@@ -1271,7 +1271,7 @@ We'll explore the first two in detail in upcoming blogs.
 ### Current Limitations
 
 **1. 2D Structure Only:**
-Standard GNNs (GCN, GAT, MPNN) operate on 2D molecular graphsthey encode connectivity but not 3D geometry. This limits accuracy for tasks where shape matters:
+Standard GNNs (GCN, GAT, MPNN) operate on 2D molecular graphs they encode connectivity but not 3D geometry. This limits accuracy for tasks where shape matters:
 - Binding affinity depends on 3D fit into protein pocket
 - Conformational flexibility affects bioavailability
 - Stereoisomers have identical 2D graphs but opposite biological effects
@@ -1336,7 +1336,7 @@ In this technically-focused post, we've covered the complete pipeline for molecu
 
 ### Key Takeaways
 
-- **Graphs are the natural representation** for moleculesthey directly encode chemical structure
+- **Graphs are the natural representation** for molecules they directly encode chemical structure
 - **Message passing** is the core computational pattern: information flows through bonds, updating atom representations iteratively
 - **Architecture matters**: GCN for baselines, GAT for interpretability, MPNN for edge-dependent tasks
 - **GNNs are state-of-the-art** for molecular property prediction, consistently outperforming fingerprints and SMILES-based models
@@ -1362,13 +1362,13 @@ Now that we can **predict** molecular properties with GNNs, how do we **generate
 
 **Blog 6: Molecular Docking**
 
-With AlphaFold structures and GNN-designed molecules, we'll learn to computationally predict **where and how** these molecules bind to proteinsthe critical step connecting computational predictions to biological activity.
+With AlphaFold structures and GNN-designed molecules, we'll learn to computationally predict **where and how** these molecules bind to proteins the critical step connecting computational predictions to biological activity.
 
 ### The Revolution in Computational Drug Discovery
 
 The combination of AlphaFold (protein structures), GNNs (molecular property prediction), generative models (molecule design), and docking (binding prediction) is compressing a 10-year, $2 billion drug discovery process into computational workflows that run in days.
 
-GNNsbuilding on the same principles of iterative geometric reasoning that powered AlphaFoldare at the center of this revolution.
+GNNs building on the same principles of iterative geometric reasoning that powered AlphaFold are at the center of this revolution.
 
 ---
 
@@ -1378,11 +1378,12 @@ GNNsbuilding on the same principles of iterative geometric reasoning that power
 
 2. **Kipf, T. N. & Welling, M. (2017)**: "Semi-Supervised Classification with Graph Convolutional Networks." *ICLR*. [GCN paper]
 
-3. **Velikovi, P. et al. (2018)**: "Graph Attention Networks." *ICLR*. [GAT paper]
+3. **Veli
+kovi  , P. et al. (2018)**: "Graph Attention Networks." *ICLR*. [GAT paper]
 
 4. **Xiong, Z. et al. (2020)**: "Pushing the Boundaries of Molecular Representation for Drug Discovery with the Graph Attention Mechanism." *Journal of Medicinal Chemistry*. [AttentiveFP for drug discovery]
 
-5. **Schütt, K. T. et al. (2017)**: "SchNet: A continuous-filter convolutional neural network for modeling quantum interactions." *NeurIPS*. [3D-aware GNN]
+5. **Schï¿½tt, K. T. et al. (2017)**: "SchNet: A continuous-filter convolutional neural network for modeling quantum interactions." *NeurIPS*. [3D-aware GNN]
 
 6. **Wu, Z. et al. (2018)**: "MoleculeNet: A Benchmark for Molecular Machine Learning." *Chemical Science*. [Standard benchmarks]
 
