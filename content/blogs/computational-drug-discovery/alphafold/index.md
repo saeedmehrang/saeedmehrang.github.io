@@ -730,7 +730,3 @@ Future research is focused on integrating AlphaFold's power with other tools: co
 In our next blog, we'll explore **Graph Neural Networks** and how they're used to predict molecular properties and drug-likeness. We'll see how the same principles underlying AlphaFold learning from structure and leveraging geometric constraints apply to small molecules in drug discovery.
 
 The revolution in computational drug discovery is just beginning, and AlphaFold has shown us what's possible when we combine deep learning with fundamental scientific insights.
-
----
-
-*This blog is part of the Computational Drug Discovery series. Next: Blog 4 - Graph Neural Networks for Molecular Property Prediction.*
