@@ -85,13 +85,23 @@ pip install torch torchvision
 pip install torch-geometric
 pip install rdkit
 pip install numpy pandas matplotlib
-
-# For PyTorch Geometric, you may need to install additional packages
-# depending on your CUDA version (see pytorch-geometric.readthedocs.io)
-pip install torch-scatter torch-sparse torch-cluster -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 ```
 
 #### Basic RDKit Workflow
+
+**What We Want to Achieve**
+
+The code aims to **load a molecule from its SMILES (Simplified Molecular-Input Line-Entry System) representation and calculate key, basic molecular descriptors**.
+
+1.  **Parse the Molecule:** The SMILES string `"CC(=O)Oc1ccccc1C(=O)O"` (which represents **Aspirin**) is parsed using `Chem.MolFromSmiles(smiles)` to create an in-memory RDKit **molecule object** (`mol`). This object is the working representation of the compound.
+2.  **Validate Input:** It checks if the parsing was successful (`if mol is None`). If not, it raises a `ValueError`, ensuring the subsequent calculations are only performed on valid molecules.
+3.  **Calculate and Print Descriptors:** Once validated, it calculates and prints the following fundamental properties:
+    * **Molecular formula** ($\text{C}_9\text{H}_8\text{O}_4$ for Aspirin) using `Chem.rdMolDescriptors.CalcMolFormula(mol)`.
+    * **Molecular weight** (180.16 Da for Aspirin) using `Descriptors.MolWt(mol)`.
+    * **Number of atoms** (13) using `mol.GetNumAtoms()`.
+    * **Number of $\sigma$ bonds** (13) using `mol.GetNumBonds()`.
+    * **Number of atoms including hydrogens** (21) using `mol_with_H.GetNumBonds()`.
+    * **Number of $\sigma$ bonds including hydrogens** (21) using `mol_with_H.GetNumBonds()`.
 
 ```python
 from rdkit import Chem
@@ -110,14 +120,23 @@ print(f"Molecular formula: {Chem.rdMolDescriptors.CalcMolFormula(mol)}")
 print(f"Molecular weight: {Descriptors.MolWt(mol):.2f} Da")
 print(f"Number of atoms: {mol.GetNumAtoms()}")
 print(f"Number of bonds: {mol.GetNumBonds()}")
+
+
+# Explicitly add all Hydrogen atoms to the molecule object that are usually omitted
+mol_with_H = Chem.AddHs(mol)
+
+print(f"Number of TOTAL atoms (incl. H): {mol_with_H.GetNumAtoms()}")
+print(f"Number of TOTAL bonds (incl. H): {mol_with_H.GetNumBonds()}") 
 ```
 
 **Output:**
 ```
 Molecular formula: C9H8O4
 Molecular weight: 180.16 Da
-Number of atoms: 21
-Number of bonds: 21
+Number of atoms: 13
+Number of bonds: 13
+Number of TOTAL atoms (incl. H): 21
+Number of TOTAL bonds (incl. H): 21
 ```
 
 **Important Notes:**
@@ -199,13 +218,24 @@ mol = Chem.MolFromSmiles("CCO")  # Ethanol
 for atom in mol.GetAtoms():
     features = get_atom_features(atom)
     print(f"Atom {atom.GetIdx()} ({atom.GetSymbol()}): {features.shape[0]} features")
+    print("features:")
+    print(features)
 ```
 
 **Output:**
 ```
 Atom 0 (C): 36 features
+features:
+[1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 1.
+ 0. 0. 0. 0. 0. 0. 1. 0. 0. 1. 0. 0.]
 Atom 1 (C): 36 features
+features:
+[1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 1.
+ 0. 0. 0. 0. 0. 1. 0. 0. 0. 1. 0. 0.]
 Atom 2 (O): 36 features
+features:
+[0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 1.
+ 0. 0. 0. 0. 1. 0. 0. 0. 0. 1. 0. 0.]
 ```
 
 **Feature Design Rationale:**
@@ -213,7 +243,7 @@ Atom 2 (O): 36 features
 1. **One-hot encodings** (vs. continuous values) allow the network to learn non-linear relationships specific to each category
 2. **Degree** captures bonding patterns (e.g., carbons typically have degree 4)
 3. **Formal charge** is crucial for electrostatic interactions with proteins
-4. **Hybridization** determines geometry (sp� = tetrahedral, sp� = planar, sp = linear)
+4. **Hybridization** determines geometry ($sp^3$ = tetrahedral, $sp^2$ = planar, sp = linear)
 5. **Aromaticity** affects stability and binding (aromatic rings are common in drugs)
 6. **Hydrogens** affect polarity and size
 7. **Ring membership** correlates with rigidity
@@ -268,11 +298,15 @@ mol = Chem.MolFromSmiles("C=C")  # Ethylene (double bond)
 for bond in mol.GetBonds():
     features = get_bond_features(bond)
     print(f"Bond {bond.GetIdx()}: {features.shape[0]} features")
+    print("features:")
+    print(features)
 ```
 
 **Output:**
 ```
 Bond 0: 10 features
+features:
+[0. 1. 0. 0. 0. 0. 1. 0. 0. 0.]
 ```
 
 **Key Considerations:**
@@ -290,18 +324,22 @@ Now we combine everything into a format PyTorch Geometric can process:
 import torch
 from torch_geometric.data import Data
 
-def mol_to_graph(smiles):
+def mol_to_graph(smiles: str, include_H: bool = False):
     """
     Convert a SMILES string to a PyTorch Geometric Data object.
 
     Args:
         smiles: SMILES string representation of molecule
+        include_H: Whether to include Hydrogen atoms in the graph
 
     Returns:
         Data object with node features, edge indices, and edge features
     """
     # Parse SMILES
     mol = Chem.MolFromSmiles(smiles)
+    if include_H:
+        mol = Chem.AddHs(mol)
+
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles}")
 
@@ -310,7 +348,8 @@ def mol_to_graph(smiles):
     for atom in mol.GetAtoms():
         node_features.append(get_atom_features(atom))
 
-    x = torch.tensor(node_features, dtype=torch.float)
+    x_np = np.array(node_features)
+    x = torch.tensor(x_np, dtype=torch.float)
 
     # Edge indices and features
     edge_indices = []
@@ -329,6 +368,10 @@ def mol_to_graph(smiles):
         edge_indices.append([j, i])
         edge_features.append(bond_feats)
 
+    # convert to numpy array first
+    edge_indices = np.stack(edge_indices, dtype=np.int64)
+    edge_features = np.array(edge_features, dtype=np.float32)
+
     # Convert to tensors
     edge_index = torch.tensor(edge_indices, dtype=torch.long).t().contiguous()
     edge_attr = torch.tensor(edge_features, dtype=torch.float)
@@ -343,27 +386,44 @@ def mol_to_graph(smiles):
 
     return data
 
-# Example usage
+# Example usage with NO Hydrogen
 smiles = "CC(=O)Oc1ccccc1C(=O)O"  # Aspirin
 data = mol_to_graph(smiles)
 
 print(f"Number of nodes: {data.num_nodes}")
 print(f"Number of edges: {data.num_edges}")
-print(f"Node feature dimension: {data.x.shape[1]}")
-print(f"Edge feature dimension: {data.edge_attr.shape[1]}")
+print(f"Node feature dimension: {data.x.shape}")
+print(f"Edge feature dimension: {data.edge_attr.shape}")
+print(f"Edge index shape: {data.edge_index.shape}")
+
+# Example usage with Hydrogen
+smiles = "CC(=O)Oc1ccccc1C(=O)O"  # Aspirin
+data = mol_to_graph(smiles, include_H=True)
+
+print(f"Number of nodes: {data.num_nodes}")
+print(f"Number of edges: {data.num_edges}")
+print(f"Node feature dimension: {data.x.shape}")
+print(f"Edge feature dimension: {data.edge_attr.shape}")
 print(f"Edge index shape: {data.edge_index.shape}")
 ```
 
 **Output:**
 ```
+Number of nodes: 13
+Number of edges: 26
+Node feature dimension: torch.Size([13, 36])
+Edge feature dimension: torch.Size([26, 10])
+Edge index shape: torch.Size([2, 26])
+
+
 Number of nodes: 21
 Number of edges: 42
-Node feature dimension: 36
-Edge feature dimension: 10
+Node feature dimension: torch.Size([21, 36])
+Edge feature dimension: torch.Size([42, 10])
 Edge index shape: torch.Size([2, 42])
 ```
 
-**Understanding the Data Structure:**
+**Understanding the Data Structure For the Case with Hydrogen Atoms Included:**
 
 - `data.x`: Shape `[num_nodes, num_node_features]`   each row is an atom's feature vector
 - `data.edge_index`: Shape `[2, num_edges]`   each column `[i, j]` represents an edge from node `i` to node `j`
@@ -373,10 +433,20 @@ Edge index shape: torch.Size([2, 42])
 **Verification:**
 ```python
 # Verify edge connectivity
-print("First 5 edges:")
-for i in range(5):
+print("First 6 edges:")
+for i in range(6):
     src, dst = data.edge_index[:, i]
     print(f"Edge {i}: atom {src.item()} -> atom {dst.item()}")
+```
+
+```output
+First 6 edges:
+Edge 0: atom 0 -> atom 1
+Edge 1: atom 1 -> atom 0
+Edge 2: atom 1 -> atom 2
+Edge 3: atom 2 -> atom 1
+Edge 4: atom 1 -> atom 3
+Edge 5: atom 3 -> atom 1
 ```
 
 ### 2.5 Batch Processing with DataLoader
@@ -395,8 +465,8 @@ smiles_list = [
     "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"  # Caffeine
 ]
 
-# Convert to graph objects
-dataset = [mol_to_graph(smiles) for smiles in smiles_list]
+# Convert to graph objects, leave out the Hydrogen atoms which is the default
+dataset = [mol_to_graph(smiles, include_H=False) for smiles in smiles_list]
 
 # Create DataLoader
 loader = DataLoader(dataset, batch_size=2, shuffle=True)
@@ -413,23 +483,76 @@ for batch in loader:
 **Output:**
 ```
 Batch with 2 molecules
-Total nodes: 48
-Total edges: 96
-Batch vector: tensor([0, 0, 0, ..., 1, 1, 1])
+Total nodes: 19
+Total edges: 38
+Batch vector: tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1])
 ---
 Batch with 2 molecules
-Total nodes: 55
-Total edges: 110
-Batch vector: tensor([0, 0, 0, ..., 1, 1, 1])
+Total nodes: 17
+Total edges: 34
+Batch vector: tensor([0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
 ---
 Batch with 1 molecules
-Total nodes: 24
-Total edges: 52
-Batch vector: tensor([0, 0, 0, ..., 0, 0, 0])
+Total nodes: 13
+Total edges: 26
+Batch vector: tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 ---
 ```
 
-**Key Insight:** PyG's batching creates a **single large disconnected graph** containing all molecules in the batch. The `batch` vector tracks which graph each node belongs to this is used later for pooling operations.
+#### Understanding the PyTorch Geometric DataLoader for Molecules Used in the Above Code Block
+
+When working with deep learning on graph data, like molecular structures, we can't simply stack graphs into a standard tensor like we do with images. Each molecule is a different size! This is where the **PyTorch Geometric (PyG) `DataLoader`** comes in.
+
+It doesn't just batch graphs; it intelligently *combines* them into one large, single graph object, which is a powerful and efficient way to process molecular data.
+
+---
+
+##### What the `DataLoader` is Doing
+
+The `DataLoader` takes a list of individual molecule graph objects (`dataset`) and groups them into mini-batches for training a neural network. It performs three key actions:
+
+###### 1. Batching and Concatenation
+
+The most important function is the **concatenation** of all graphs in a batch. Instead of creating a list of separate graphs, PyG stitches them together into one large, disconnected graph.
+
+* **Nodes and Edges:** All the node features (`x`), edge indices (`edge_index`), and edge features (`edge_attr`) from the individual molecules are simply stacked end-to-end.
+* **Node Index Transformation:** Crucially, the node indices in the `edge_index` of the later graphs are shifted. For instance, if the first molecule has 13 nodes, the second molecule's node indices will start counting from 13, not 0. This ensures that the edges correctly point to their corresponding nodes in the combined graph.
+
+###### 2. Shuffling
+
+The `shuffle=True` argument ensures that the order in which the molecules are drawn from the `dataset` is randomized at the beginning of each epoch. This is a standard practice in machine learning to prevent the model from learning biases based on data order.
+
+###### 3. Creating the `batch` Vector
+
+The `DataLoader` adds a special attribute to the combined graph object: the **`batch` vector**.
+
+This vector is the **key to distinguishing which node belongs to which original molecule** within the concatenated graph.
+
+* It's a 1D tensor whose length equals the **Total Nodes** in the batch.
+* The value at each position corresponds to the **index of the graph** the node belongs to (e.g., `0` for the first graph, `1` for the second, and so on).
+
+---
+
+##### How the Data is Stored and Represented
+
+Let's look at the output of the first batch to illustrate how the data is combined:
+
+| Output Property | Value | Explanation |
+| :--- | :--- | :--- |
+| `Batch with 2 molecules` | 2 | This is the `batch_size` used (e.g., Aspirin + Ethanol). |
+| `Total nodes` | 19 | $13 \text{ (Aspirin)} + 6 \text{ (Ethanol)} = 19 \text{ total heavy atoms}$. |
+| `Total edges` | 38 | Total bonds from both graphs, **doubled** (since edges are stored for both directions). |
+| `Batch vector` | `[0, 0, ..., 0, 1, 1, ..., 1]` | **The first 13 values are `0`** (for Aspirin's 13 nodes); **the last 6 values are `1`** (for Ethanol's 6 nodes). |
+
+###### The Single Graph Trick 💡
+
+The entire batch is treated as a **single, large, disconnected graph**.
+
+1.  **Input:** Your model receives the large concatenated graph object (e.g., the one with 19 nodes).
+2.  **Processing:** Graph Neural Networks (GNNs) can process this entire large graph efficiently in parallel. Because the original molecule graphs are disconnected from each other, the message-passing mechanism of the GNN never crosses the boundary between molecules.
+3.  **Aggregation:** After the node embeddings are updated, the model uses the **`batch` vector** to perform **global pooling** (e.g., summing or averaging all node features that belong to the same graph index) to get a single, final vector representation for **each individual molecule**.
+
+This method of **stitching graphs together** is the most memory-efficient and computationally fastest way to handle mini-batching for Graph Neural Networks.
 
 ---
 
@@ -475,7 +598,9 @@ Where:
 - $\mathbf{W}^{(k)}$ is a learnable weight matrix
 - The normalization ensures stable gradients
 - $\sigma$ is an activation function (ReLU, ELU, etc.)
+- $u$ is a neighboring node of the current node $v$ being updated. The summation iterates over all $u$ that are directly connected to $v$
 - The node includes itself in the aggregation ($v \in \mathcal{N}(v) \cup \{v\}$)
+- $\mathbf{\mathcal{N}(u)}$ is the **set of neighbors of node $u$** (the nodes directly connected to $u$), typically including the node $u$ itself due to the added self-loop.
 
 **Key Property:** GCN treats all neighbors **equally** (after degree normalization). This is simple but has limitations not all chemical bonds are equally important.
 
