@@ -602,7 +602,7 @@ Where:
 - The node includes itself in the aggregation ($v \in \mathcal{N}(v) \cup \{v\}$)
 - $\mathbf{\mathcal{N}(u)}$ is the **set of neighbors of node $u$** (the nodes directly connected to $u$), typically including the node $u$ itself due to the added self-loop.
 
-**Key Property:** GCN treats all neighbors **equally** (after degree normalization). This is simple but has limitations not all chemical bonds are equally important.
+**Key Property**: GCN is non-attentive, meaning it treats every neighbor identically. This limitation is particularly relevant in chemistry, where bond type and local environment determine a neighbor's influence.
 
 #### Implementation:
 
@@ -622,10 +622,10 @@ class MoleculeGCN(torch.nn.Module):
     """
     def __init__(
         self,
-        num_node_features,
-        hidden_dim=64,
-        num_classes=1,
-        dropout=0.2
+        num_node_features: int,
+        hidden_dim: int=64,
+        num_classes: int=1,
+        dropout: float=0.2
     ):
         super(MoleculeGCN, self).__init__()
 
@@ -649,32 +649,59 @@ class MoleculeGCN(torch.nn.Module):
         x, edge_index, batch = data.x, data.edge_index, data.batch
 
         # GCN layer 1
-        x = self.conv1(x, edge_index)
+        x = self.conv1(x, edge_index) # [3, 64] ← Each atom now has 64-dim features
         x = self.bn1(x)
         x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
 
         # GCN layer 2
-        x = self.conv2(x, edge_index)
+        x = self.conv2(x, edge_index) # [3, 64] ← Features refined further
         x = self.bn2(x)
         x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
 
         # GCN layer 3
-        x = self.conv3(x, edge_index)
+        x = self.conv3(x, edge_index) # [3, 64] ← Features refined further
         x = self.bn3(x)
         x = F.relu(x)
 
+        # some regularizations
+        x = F.dropout(x, p=self.dropout, training=self.training)
+
         # Global pooling: [num_nodes, hidden_dim] -> [num_graphs, hidden_dim]
-        x = global_mean_pool(x, batch)
+        x = global_mean_pool(x, batch) # [3, 64] → [1, 64]
 
         # MLP prediction head
-        x = self.fc1(x)
+        x = self.fc1(x) # [1, 64] → [1, 32]
         x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.fc2(x)
+        x = self.fc2(x) # [1, 32] → [1, 1]  ← Final logit!
 
         return x
+
+# Forward pass on a single molecule
+data = mol_to_graph("CCO")  # Ethanol
+
+print(
+    """
+    Atoms: C-C-O (3 nodes)
+    Edges: (0→1), (1→0), (1→2), (2→1)  [bidirectional bonds]
+    Features: data.x = [3, 36]  (3 atoms, 36 features each)
+    """
+)
+print("-" * 20)
+print(f"Data inspection")
+print("-" * 20)
+
+
+print("Features of the molecula, one row per atom:")
+print(data.x)
+print("Edge indices:")
+print(data.edge_index)
+print("Edge features:")
+print(data.edge_attr)
+
+
+print("-" * 20)
+print(f"Model Architecture")
+print("-" * 20)
 
 # Initialize model
 model = MoleculeGCN(
@@ -686,23 +713,15 @@ model = MoleculeGCN(
 
 print(model)
 print(f"Total parameters: {sum(p.numel() for p in model.parameters())}")
-```
 
-**Architecture Details:**
 
-1. **Three GCN layers**: After 3 layers, each atom sees its 3-hop neighborhood (atoms within 3 bonds)
-2. **Batch normalization**: Stabilizes training by normalizing activations
-3. **Dropout**: Prevents overfitting (randomly zeros 20% of activations during training)
-4. **Global pooling**: Aggregates all atom features into one vector per molecule
-5. **MLP head**: Transforms graph embedding to final prediction
+print("-" * 20)
+print(f"Model forward pass")
+print("-" * 20)
 
-**Inference Example:**
-
-```python
-# Forward pass on a single molecule
-data = mol_to_graph("CCO")  # Ethanol
 data = data.to('cuda' if torch.cuda.is_available() else 'cpu')
 model.eval()
+
 
 with torch.no_grad():
     output = model(data)
@@ -712,6 +731,114 @@ with torch.no_grad():
     probability = torch.sigmoid(output).item()
     print(f"Predicted probability: {probability:.4f}")
 ```
+
+```
+
+    Atoms: C-C-O (3 nodes)
+    Edges: (0→1), (1→0), (1→2), (2→1)  [bidirectional bonds]
+    Features: data.x = [3, 36]  (3 atoms, 36 features each)
+    
+--------------------
+Data inspection
+--------------------
+Features of the molecula, one row per atom:
+tensor([[1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.,
+         1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 0.],
+        [1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
+         1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0.],
+        [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.,
+         1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0.]])
+Edge indices:
+tensor([[0, 1, 1, 2],
+        [1, 0, 2, 1]])
+Edge features:
+tensor([[1., 0., 0., 0., 0., 0., 1., 0., 0., 0.],
+        [1., 0., 0., 0., 0., 0., 1., 0., 0., 0.],
+        [1., 0., 0., 0., 0., 0., 1., 0., 0., 0.],
+        [1., 0., 0., 0., 0., 0., 1., 0., 0., 0.]])
+--------------------
+Model Architecture
+--------------------
+MoleculeGCN(
+  (conv1): GCNConv(36, 64)
+  (conv2): GCNConv(64, 64)
+  (conv3): GCNConv(64, 64)
+  (bn1): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  (bn2): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  (bn3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  (fc1): Linear(in_features=64, out_features=32, bias=True)
+  (fc2): Linear(in_features=32, out_features=1, bias=True)
+)
+Total parameters: 13185
+--------------------
+Model forward pass
+--------------------
+Model output (logit): 0.0177
+Predicted probability: 0.5044
+```
+
+
+***
+
+## How GCN Convolution is Applied to the Input Data
+
+The $\text{GCNConv}$ layers (e.g., `self.conv1`) are the core of the model. They process the entire batch of molecules as one large graph in a single, efficient step according to the GCN formula: $$\mathbf{H}^{(k)} = \sigma\left(\mathbf{\hat{A}} \mathbf{H}^{(k-1)} \mathbf{W}^{(k)}\right)$$
+
+### Input Data Tensors
+
+The $\text{GCNConv}$ layer receives the two essential tensors defining the graph:
+
+1.  **Node Features ($\mathbf{x}$):** A $3 \times 36$ tensor containing the features for the **3 heavy atoms** (C, C, O) of Ethanol. This is the starting feature matrix $\mathbf{H}^{(0)}$.
+2.  **Edge Index ($\mathbf{edge\_index}$):** A $2 \times 4$ tensor defining the bonds (e.g., `[0, 1]` means atom 0 is connected to atom 1). This tensor represents the **graph structure** and is used to define neighborhood relationships.
+
+### The $\text{GCNConv}$ Mechanism (Message Passing)
+
+The convolution process occurs in two simultaneous mathematical operations:
+
+1.  **Feature Transformation ($\mathbf{H}_{W} = \mathbf{H}^{(k-1)} \mathbf{W}^{(k)}$):** The layer first applies its internal, learnable **weight matrix** ($\mathbf{W}$) to the input features $\mathbf{x}$. This is a standard linear transformation that transforms the $36$ input features into the $64$ hidden features, acting like a **learnable filter** to extract relevant chemical properties.
+
+2.  **Neighborhood Aggregation ($\mathbf{\hat{A}} \mathbf{H}_{W}$):** Next, the layer efficiently performs a **normalized aggregation**. It multiplies the transformed features by the $\mathbf{\hat{A}}$ matrix. This operation aggregates (averages) the features of all neighbors (and the node itself) according to the graph's structure.
+
+The result is a new feature matrix $\mathbf{x}$ (now $3 \times 64$) where each atom's vector contains **information from its local environment**. After three layers, each atom sees information from its **3-hop neighborhood**.
+
+***
+
+## Detail: The Normalized Adjacency Matrix ($\mathbf{\hat{A}}$)
+
+The term $\mathbf{\hat{A}}$ is the **Normalized Adjacency Matrix**—the central element that adapts convolution to graphs. It's pre-calculated to perform the normalized averaging of neighbor features in a single matrix multiplication. It is defined as:
+
+$$\mathbf{\hat{A}} = \mathbf{\tilde{D}}^{-\frac{1}{2}} \mathbf{\tilde{A}} \mathbf{\tilde{D}}^{-\frac{1}{2}}$$
+
+The use of $\mathbf{\tilde{D}}^{-\frac{1}{2}}$ on **both the left and right** ensures the **symmetry of the normalization**, leading to stable training.
+
+### Calculation Breakdown for Ethanol (CCO)
+
+The calculation converts the simple bond list into the precise aggregation weights:
+
+1.  **Adjacency with Self-Loops ($\mathbf{\tilde{A}}$):** The original adjacency matrix ($\mathbf{A}$) is augmented with the identity matrix ($\mathbf{I}$) so that every node includes its own features in the aggregation.
+    $$\mathbf{A} = \begin{pmatrix} 0 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 0 \end{pmatrix} \rightarrow \mathbf{\tilde{A}} = \mathbf{A} + \mathbf{I} = \begin{pmatrix} 1 & 1 & 0 \\ 1 & 1 & 1 \\ 0 & 1 & 1 \end{pmatrix}$$
+
+2.  **Degree Normalization ($\mathbf{\tilde{D}}^{-\frac{1}{2}}$):** The degree ($\tilde{d}_i$) of each node in $\mathbf{\tilde{A}}$ is found (2, 3, 2). The inverse square root matrix is then created:
+    $$\mathbf{\tilde{D}}^{-\frac{1}{2}} = \begin{pmatrix} 1/\sqrt{2} & 0 & 0 \\ 0 & 1/\sqrt{3} & 0 \\ 0 & 0 & 1/\sqrt{2} \end{pmatrix}$$
+
+3.  **Final $\mathbf{\hat{A}}$ Matrix:** Multiplying the three matrices results in the final, symmetric weighting matrix.
+
+    $$\mathbf{\hat{A}} = \begin{pmatrix}
+    \mathbf{1/2} & \mathbf{1/\sqrt{6}} & 0 \\
+    \mathbf{1/\sqrt{6}} & \mathbf{1/3} & \mathbf{1/\sqrt{6}} \\
+    0 & \mathbf{1/\sqrt{6}} & \mathbf{1/2}
+    \end{pmatrix}$$
+
+The values in this matrix define the exact weight applied to each neighbor's feature vector during the aggregation step.
+
+***
+
+### Final Step: Global Pooling
+
+The final node feature matrix (from $\text{conv3}$) is then passed to the **Global Mean Pooling** layer. This layer uses the `data.batch` tensor to **average** the feature vectors of all atoms, condensing the entire graph's information into a single $1 \times 64$ vector for the final $\text{MLP}$ head.
+***
+
+***
 
 ### 3.3 Graph Attention Networks (GAT)
 
