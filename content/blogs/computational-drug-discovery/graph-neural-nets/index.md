@@ -1099,40 +1099,57 @@ The Graph Attention Network (GAT) fundamentally differs from GCN by replacing fi
 
 ***
 
-### 3.4 Message Passing Neural Networks (MPNN)
+***
 
-MPNN is a general framework that explicitly incorporates **edge features** (bond information). Unlike GCN/GAT which primarily use node features, MPNN makes bond properties central to message passing.
+## 3.4 Message Passing Neural Networks (MPNN)
 
-The update rules are:
+The **Message Passing Neural Network (MPNN)** is a general framework that describes how many $\text{GNNs}$ work, providing a unified view of the process. While $\text{GCN}$ and $\text{GAT}$ can *optionally* incorporate edge features, $\text{MPNN}$ makes the **edge-conditioned message passing** explicit and central to its design.
 
-**Message function:**
+### The MPNN Framework
+
+The framework consists of two phases, representing one iteration of a typical $\text{GNN}$ layer:
+
+#### Phase 1: Message Passing (T iterations)
+
+In this phase, information is exchanged and updated locally between connected nodes.
+
+1.  **Message Function ($\text{MSG}$):** A message $m_{u \rightarrow v}$ is generated for every bond based on the features of the sender node $u$, the receiver node $v$, and the **edge feature** $\mathbf{f}_{uv}$.
+    $$
+    m_{u \rightarrow v}^{(k)} = \text{MSG}(\mathbf{h}_v^{(k-1)}, \mathbf{h}_u^{(k-1)}, \mathbf{f}_{uv})
+    $$
+
+2.  **Aggregation:** All incoming messages are combined into a single vector $\mathbf{m}_v$ for the receiver node $v$.
+    $$
+    \mathbf{m}_v^{(k)} = \sum_{u \in \mathcal{N}(v)} m_{u \rightarrow v}^{(k)}
+    $$
+
+3.  **Update Function ($\text{UPDATE}$):** The node's features are updated using its previous state and the aggregated message.
+    $$
+    \mathbf{h}_v^{(k)} = \text{UPDATE}(\mathbf{h}_v^{(k-1)}, \mathbf{m}_v^{(k)})
+    $$
+
+> **Note:** Both $\text{MSG}$ and $\text{UPDATE}$ are typically implemented as small **Multilayer Perceptrons ($\text{MLPs}$)**. The crucial distinction here is that the $\text{MSG}$ function is *explicitly* dependent on the edge feature $\mathbf{f}_{uv}$.
+
+#### Phase 2: Readout (Global Pooling)
+
+After $T$ message passing steps (where $T$ is the number of $\text{MPNN}$ layers), a readout function aggregates all final node features into a single, comprehensive graph-level representation:
+
 $$
-m_{u \rightarrow v}^{(k)} = \text{MSG}(\mathbf{h}_v^{(k-1)}, \mathbf{h}_u^{(k-1)}, \mathbf{e}_{uv})
+\mathbf{h}_G = \text{READOUT}(\{\mathbf{h}_v^{(T)} | v \in G\})
 $$
 
-**Aggregation:**
-$$
-\mathbf{m}_v^{(k)} = \sum_{u \in \mathcal{N}(v)} m_{u \rightarrow v}^{(k)}
-$$
-
-**Update:**
-$$
-\mathbf{h}_v^{(k)} = \text{UPDATE}(\mathbf{h}_v^{(k-1)}, \mathbf{m}_v^{(k)})
-$$
-
-Both MSG and UPDATE are learnable neural networks (typically MLPs).
-
-#### Implementation:
 
 ```python
+
 from torch_geometric.nn import NNConv
 
 class MoleculeMPNN(torch.nn.Module):
     """
-    Message Passing Neural Network with explicit edge features.
+    Message Passing Neural Network with explicit edge feature conditioning.
 
-    Edge features (bond type, conjugation, etc.) are used to
-    compute messages via learnable edge networks.
+    Edge features (bond type, conjugation, ring membership, etc.) are 
+    processed by neural networks to generate edge-specific weight matrices
+    for message computation.
     """
     def __init__(
         self,
@@ -1144,27 +1161,29 @@ class MoleculeMPNN(torch.nn.Module):
     ):
         super(MoleculeMPNN, self).__init__()
 
-        # Edge networks: transform edge features for message passing
-        # Each edge network is a 2-layer MLP
+        # Edge networks: map edge features to weight matrices
+        # Each edge network outputs a matrix of size (in_dim × out_dim)
+        # that transforms neighbor features based on the bond properties
+        
         self.edge_network1 = torch.nn.Sequential(
-            torch.nn.Linear(num_edge_features, hidden_dim * num_node_features),
+            torch.nn.Linear(num_edge_features, hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_dim * num_node_features, hidden_dim * hidden_dim)
+            torch.nn.Linear(hidden_dim, hidden_dim * num_node_features)
         )
 
         self.edge_network2 = torch.nn.Sequential(
-            torch.nn.Linear(num_edge_features, hidden_dim * hidden_dim),
+            torch.nn.Linear(num_edge_features, hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_dim * hidden_dim, hidden_dim * hidden_dim)
+            torch.nn.Linear(hidden_dim, hidden_dim * hidden_dim)
         )
 
         self.edge_network3 = torch.nn.Sequential(
-            torch.nn.Linear(num_edge_features, hidden_dim * hidden_dim),
+            torch.nn.Linear(num_edge_features, hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_dim * hidden_dim, hidden_dim * hidden_dim)
+            torch.nn.Linear(hidden_dim, hidden_dim * hidden_dim)
         )
 
-        # MPNN layers with edge networks
+        # MPNN layers with edge-conditioned message passing
         self.conv1 = NNConv(num_node_features, hidden_dim, self.edge_network1)
         self.conv2 = NNConv(hidden_dim, hidden_dim, self.edge_network2)
         self.conv3 = NNConv(hidden_dim, hidden_dim, self.edge_network3)
@@ -1174,7 +1193,7 @@ class MoleculeMPNN(torch.nn.Module):
         self.bn2 = torch.nn.BatchNorm1d(hidden_dim)
         self.bn3 = torch.nn.BatchNorm1d(hidden_dim)
 
-        # MLP head
+        # MLP head for graph-level prediction
         self.fc1 = torch.nn.Linear(hidden_dim, hidden_dim // 2)
         self.fc2 = torch.nn.Linear(hidden_dim // 2, num_classes)
 
@@ -1185,7 +1204,7 @@ class MoleculeMPNN(torch.nn.Module):
             data.x, data.edge_index, data.edge_attr, data.batch
         )
 
-        # MPNN layer 1: messages weighted by bond features
+        # MPNN layer 1: messages computed using bond-specific weights
         x = self.conv1(x, edge_index, edge_attr)
         x = self.bn1(x)
         x = F.relu(x)
@@ -1202,10 +1221,10 @@ class MoleculeMPNN(torch.nn.Module):
         x = self.bn3(x)
         x = F.relu(x)
 
-        # Global pooling
+        # Global pooling (readout function)
         x = global_mean_pool(x, batch)
 
-        # MLP prediction
+        # MLP prediction head
         x = self.fc1(x)
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
@@ -1216,39 +1235,96 @@ class MoleculeMPNN(torch.nn.Module):
 # Initialize model
 model = MoleculeMPNN(
     num_node_features=36,
-    num_edge_features=10,  # From our bond feature extraction
+    num_edge_features=10,  # From bond feature extraction
     hidden_dim=64,
     num_classes=1,
     dropout=0.2
 )
 
-print(f"Total parameters: {sum(p.numel() for p in model.parameters())}")
+# Inspect model architecture
+print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+print(f"Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
+
+# Break down parameters by component
+edge_net_params = sum(p.numel() for net in [model.edge_network1, model.edge_network2, model.edge_network3] for p in net.parameters())
+conv_params = sum(p.numel() for conv in [model.conv1, model.conv2, model.conv3] for p in conv.parameters()) - edge_net_params
+mlp_params = sum(p.numel() for layer in [model.fc1, model.fc2] for p in layer.parameters())
+
+print(f"\nParameter breakdown:")
+print(f"  Edge networks: {edge_net_params:,} ({edge_net_params/sum(p.numel() for p in model.parameters())*100:.1f}%)")
+print(f"  Conv layers: {conv_params:,} ({conv_params/sum(p.numel() for p in model.parameters())*100:.1f}%)")
+print(f"  MLP head: {mlp_params:,} ({mlp_params/sum(p.numel() for p in model.parameters())*100:.1f}%)")
+
+# Make predictions on sample molecules
+model.eval()
+molecules = ["CCO", "CC(=O)O", "c1ccccc1"]  # Ethanol, acetic acid, benzene
+names = ["Ethanol", "Acetic Acid", "Benzene"]
+
+print(f"\nSample predictions:")
+with torch.no_grad():
+    for mol_smiles, name in zip(molecules, names):
+        data = mol_to_graph(mol_smiles)
+        pred = model(data).item()
+        print(f"  {name:12s} ({mol_smiles:12s}): {pred:.3f}")
 ```
 
-**Key Innovation:** The edge network computes a weight matrix for each edge based on bond features. This means:
-- Single bonds, double bonds, and aromatic bonds use different message functions
-- Conjugated bonds can propagate information differently
-- The model learns which bond types are important for the prediction task
 
-**When to Use MPNN:**
-- When bond properties are critical (e.g., predicting reaction outcomes)
-- When you have rich edge features
-- When you need maximum expressiveness (at the cost of more parameters)
+```
+Total parameters: 697,537
+Trainable parameters: 697,537
 
-### 3.5 Architecture Comparison
+Parameter breakdown:
+  Edge networks: 684,352 (98.1%)
+  Conv layers: 10,688 (1.5%)
+  MLP head: 2,113 (0.3%)
 
-Let's compare the three architectures we've implemented:
+Sample predictions:
+  Ethanol      (CCO         ): 0.118
+  Acetic Acid  (CC(=O)O     ): 0.112
+  Benzene      (c1ccccc1    ): -0.040
+```
 
-| Architecture | Parameters | Strengths | Weaknesses | Best For |
-|:-------------|:-----------|:----------|:-----------|:---------|
-| **GCN** | Fewest (~50K) | Fast, simple, good baseline | Treats all neighbors equally | Quick experiments, simple properties |
-| **GAT** | Medium (~150K) | Learns attention, interpretable | Slower, more parameters | When you need to understand predictions |
-| **MPNN** | Most (~300K) | Uses edge features explicitly | Slowest, needs more data | Complex bond-dependent properties |
+---
 
-**Practical Recommendation:**
-1. Start with **GCN** for baseline
-2. Try **GAT** if GCN plateaus (often gives 2-5% improvement)
-3. Use **MPNN** if you have rich edge features and sufficient training data
+### Implementation: NNConv (Neural Network Convolution)
+
+**NNConv** is a highly effective $\text{MPNN}$ variant that achieves strong edge conditioning by having edge features generate **edge-specific transformation matrices**.
+
+#### How NNConv Works: Generating Bond-Specific Filters
+
+1.  **Edge Network:** For each edge $(u, v)$ with features $\mathbf{f}_{uv}$ (e.g., single or double bond), a small, dedicated $\text{MLP}$ (the **edge network**) processes $\mathbf{f}_{uv}$ to generate a unique weight matrix:
+    $$\mathbf{W}_{uv} = \text{EdgeNet}(\mathbf{f}_{uv})$$
+2.  **Edge-Conditioned Message:** This bond-specific matrix $\mathbf{W}_{uv}$ is applied to the neighbor's feature $\mathbf{h}_u$ to generate the message $m_{u \rightarrow v}$:
+    $$m_{u \rightarrow v} = \mathbf{W}_{uv} \mathbf{h}_u$$
+    > **Intuition:** A single bond will generate one $\mathbf{W}$ that down-weights certain features, while a double bond will generate a different $\mathbf{W}$ that up-weights them. The message is *transformed* based on the bond type.
+3.  **Aggregation:** All transformed messages are summed to update the receiving node $v$:
+    $$\mathbf{h}_v^{new} = \sigma\left(\sum_{u \in \mathcal{N}(v)} m_{u \rightarrow v}\right)$$
+
+#### Tracking Dimensions in NNConv (NNConv Layers 2-3)
+
+The complexity of $\text{NNConv}$ is in ensuring the edge network outputs the correct number of values to form the transformation matrix.
+
+* To transform a feature vector from $d_{in}$ to $d_{out}$ (e.g., $64 \to 64$), the required weight matrix $\mathbf{W}_{uv}$ must be $d_{out} \times d_{in}$ ($64 \times 64$).
+* The edge network must therefore output $d_{out} \times d_{in} = 64 \times 64 = 4096$ scalar values, which are then reshaped into $\mathbf{W}_{uv}$.
+* In the provided code, `edge_network2` is designed to produce $4096$ values, reflecting this requirement.
+
+---
+
+## 3.5 Architecture Comparison: GCN, GAT, and MPNN
+
+| Architecture | Edge Features Use | Key Mechanism | Strengths | Best For |
+|:-------------|:------------------|:--------------|:----------|:---------|
+| **GCN** | Optional/Limited | **Uniform** aggregation ($\mathbf{\hat{A}}$) | Fast, simple, good baseline. | Topology-heavy tasks (e.g., node classification). |
+| **GAT** | Integrated in **Attention** | **Learned weights** ($\alpha_{vu}$) | Adaptively weights neighbors; provides interpretability. | When neighbor importance varies chemically. |
+| **MPNN (NNConv)** | **Generates Weights** | **Edge-conditioned** messages | Explicitly models bond differences; strongest edge differentiation. | Bond-critical tasks (e.g., reactions, conformation). |
+
+**Important Note on Edge Features:**
+
+* **GCN/GAT:** Edge features are typically **concatenated** to node features or used to modulate the attention score. The core aggregation mechanism remains the same for all edge types.
+* **MPNN (NNConv):** Edge features generate **unique transformation matrices** ($\mathbf{W}_{uv}$) for *every single bond*. This allows the model to differentiate between a single $\text{C-C}$ bond and a double $\text{C=C}$ bond with the maximum possible impact on feature transformation.
+
+
+***
 
 ### 3.6 Pooling Strategies
 
@@ -1263,35 +1339,73 @@ from torch_geometric.nn import (
     Set2Set
 )
 
-# 1. Mean pooling (most common)
-graph_embed_mean = global_mean_pool(x, batch)
+from torch_geometric.nn.aggr import AttentionalAggregation
 
-# 2. Sum pooling (used in GIN architecture)
-graph_embed_sum = global_add_pool(x, batch)
 
-# 3. Max pooling (captures most active features)
-graph_embed_max = global_max_pool(x, batch)
+# Assume you have a trained MPNN model and some data
+model.eval()
+data = mol_to_graph("CCO")  # Example molecule
 
-# 4. Attention pooling (learnable weights)
-attention_pool = GlobalAttention(
-    gate_nn=torch.nn.Linear(hidden_dim, 1)
-)
-graph_embed_attn = attention_pool(x, batch)
-
-# 5. Set2Set (most sophisticated, from "Order Matters: Sequence to sequence for sets")
-set2set_pool = Set2Set(hidden_dim, processing_steps=3)
-graph_embed_s2s = set2set_pool(x, batch)
+# Forward pass through conv layers to get node embeddings
+with torch.no_grad():
+    x = data.x
+    edge_index = data.edge_index
+    edge_attr = data.edge_attr
+    batch = data.batch
+    
+    # Pass through all conv layers
+    x = model.conv1(x, edge_index, edge_attr)
+    x = model.bn1(x)
+    x = F.relu(x)
+    
+    x = model.conv2(x, edge_index, edge_attr)
+    x = model.bn2(x)
+    x = F.relu(x)
+    
+    x = model.conv3(x, edge_index, edge_attr)
+    x = model.bn3(x)
+    x = F.relu(x)
+    
+    # Now x has shape: (num_nodes, hidden_dim) e.g., (5, 64) for a 5-atom molecule
+    # batch has shape: (num_nodes,) e.g., tensor([0, 0, 0, 0, 0])
+    
+    hidden_dim = 64  # Your model's hidden dimension
+    
+    # 1. Mean pooling
+    graph_embed_mean = global_mean_pool(x, batch)
+    print(f"Mean pool shape: {graph_embed_mean.shape}")  # (1, 64)
+    
+    # 2. Sum pooling
+    graph_embed_sum = global_add_pool(x, batch)
+    print(f"Sum pool shape: {graph_embed_sum.shape}")  # (1, 64)
+    
+    # 3. Max pooling
+    graph_embed_max = global_max_pool(x, batch)
+    print(f"Max pool shape: {graph_embed_max.shape}")  # (1, 64)
+    
+    # 4. Attention pooling
+    attention_pool = AttentionalAggregation(
+        gate_nn=torch.nn.Linear(hidden_dim, 1)
+    )
+    graph_embed_attn = attention_pool(x, batch)
+    print(f"Attention pool shape: {graph_embed_attn.shape}")  # (1, 64)
+    
+    # 5. Set2Set pooling
+    set2set_pool = Set2Set(hidden_dim, processing_steps=3)
+    graph_embed_s2s = set2set_pool(x, batch)
+    print(f"Set2Set pool shape: {graph_embed_s2s.shape}")  # (1, 128) - outputs 2×hidden_dim!
 ```
 
 **Pooling Trade-offs:**
 
-- **Mean pooling**: Simple, works well, standard choice
-- **Sum pooling**: Theoretically more expressive (required for GIN), but sensitive to graph size
-- **Max pooling**: Good when a single "active" atom dominates (e.g., toxicity from one functional group)
-- **Attention pooling**: Learnable, interpretable (shows which atoms matter), but more parameters
-- **Set2Set**: Most sophisticated, best performance on benchmarks, but slow
+- **Mean pooling**: Simple, stable across graph sizes, standard baseline choice
+- **Sum pooling**: Preserves total information (required for provably expressive architectures like GIN), but output magnitude scales with molecule size
+- **Max pooling**: Captures strongest signals; useful when a single atom/feature dominates (e.g., reactive functional group in toxicity prediction)
+- **Attention pooling**: Learns which atoms are important for the task; interpretable but adds learnable parameters
+- **Set2Set**: Uses iterative LSTM-based refinement; often achieves best performance on benchmarks but computationally expensive and outputs 2×hidden_dim
 
-**Empirical rule:** Start with mean pooling unless you have a specific reason to use others.
+**Practical recommendation:** Start with **mean pooling** for baseline. Try **attention pooling** if interpretability matters or **Set2Set** if you need maximum performance and have computational budget.
+
 
 ---
 
