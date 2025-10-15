@@ -23,7 +23,7 @@ In our journey through computational drug discovery, we've built a substantial f
 - **Blog 2** explored molecular representations, showing that molecules can be encoded as SMILES strings, fingerprints, **molecular graphs**, or 3D coordinates
 - **Blog 3** covered AlphaFold2's revolutionary approach to protein structure prediction using evolutionary data, attention mechanisms, and geometric constraints
 
-Now we pivot to the other half of the drug discovery equation: **small molecules** the potential drugs themselves.
+Now we pivot to the other half of the drug discovery equation: **small molecules**—the potential drugs themselves.
 
 ### The Challenge: Predicting Molecular Properties
 
@@ -91,7 +91,7 @@ pip install numpy pandas matplotlib
 
 **What We Want to Achieve**
 
-The code aims to **load a molecule from its SMILES (Simplified Molecular-Input Line-Entry System) representation and calculate key, basic molecular descriptors**.
+The code aims to load a molecule from its **SMILES (Simplified Molecular-Input Line-Entry System)** representation and calculate key, basic molecular descriptors.
 
 1.  **Parse the Molecule:** The SMILES string `"CC(=O)Oc1ccccc1C(=O)O"` (which represents **Aspirin**) is parsed using `Chem.MolFromSmiles(smiles)` to create an in-memory RDKit **molecule object** (`mol`). This object is the working representation of the compound.
 2.  **Validate Input:** It checks if the parsing was successful (`if mol is None`). If not, it raises a `ValueError`, ensuring the subsequent calculations are only performed on valid molecules.
@@ -99,9 +99,10 @@ The code aims to **load a molecule from its SMILES (Simplified Molecular-Input L
     * **Molecular formula** ($\text{C}_9\text{H}_8\text{O}_4$ for Aspirin) using `Chem.rdMolDescriptors.CalcMolFormula(mol)`.
     * **Molecular weight** (180.16 Da for Aspirin) using `Descriptors.MolWt(mol)`.
     * **Number of atoms** (13) using `mol.GetNumAtoms()`.
-    * **Number of $\sigma$ bonds** (13) using `mol.GetNumBonds()`.
-    * **Number of atoms including hydrogens** (21) using `mol_with_H.GetNumBonds()`.
-    * **Number of $\sigma$ bonds including hydrogens** (21) using `mol_with_H.GetNumBonds()`.
+    * **Number of bonds** (13) using `mol.GetNumBonds()`.
+    * **Number of atoms including hydrogens** (21) using `mol_with_H.GetNumAtoms()`.
+    * **Number of bonds including hydrogens** (21) using `mol_with_H.GetNumBonds()`.
+
 
 ```python
 from rdkit import Chem
@@ -337,11 +338,12 @@ def mol_to_graph(smiles: str, include_H: bool = False):
     """
     # Parse SMILES
     mol = Chem.MolFromSmiles(smiles)
-    if include_H:
-        mol = Chem.AddHs(mol)
 
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles}")
+
+    if include_H:
+        mol = Chem.AddHs(mol)
 
     # Node features: extract for all atoms
     node_features = []
@@ -780,7 +782,7 @@ Predicted probability: 0.5044
 
 ***
 
-## How GCN Convolution is Applied to the Input Data
+### Understanding GCN Convolution Mechanics
 
 The $\text{GCNConv}$ layers (e.g., `self.conv1`) are the core of the model. They process the entire batch of molecules as one large graph in a single, efficient step according to the GCN formula: $$\mathbf{H}^{(k)} = \sigma\left(\mathbf{\hat{A}} \mathbf{H}^{(k-1)} \mathbf{W}^{(k)}\right)$$
 
@@ -1681,7 +1683,7 @@ There's a beautiful conceptual connection between GNN message passing and AlphaF
 - AlphaFold's Evoformer uses multi-head attention in MSA rows/columns
 - Both learn to focus on the most relevant parts of the structure
 
-## 5. Applications of GNNs in Drug Discovery 💊
+## 5. Applications of GNNs in Drug Discovery
 
 ### GNNs in the Drug Discovery Pipeline
 
@@ -1730,7 +1732,7 @@ Beyond property prediction, GNNs enable:
 - **Message passing** is the core computational pattern: information flows through bonds, updating atom representations iteratively
 - **Architecture matters**: GCN for baselines, GAT for interpretability, MPNN for edge-dependent tasks
 - **GNNs are state-of-the-art** for molecular property prediction, consistently outperforming fingerprints and SMILES-based models
-- **Connections to AlphaFold**: Both GNNs and AlphaFold use iterative local aggregation to capture global properties. Remember, Alphafold2 uses Evoformer and Structure modlues that are not GNNs, but a special type of sequence model.
+- **Connections to AlphaFold**: Both GNNs and AlphaFold use iterative local aggregation to capture global properties. Remember, AlphaFold2 uses the Evoformer and Structure modules that rely on attention mechanisms rather than GNN message passing, though both share the principle of iterative local-to-global information aggregation.
 
 
 ### Looking Forward: The Complete Drug Discovery Pipeline
@@ -1767,8 +1769,7 @@ GNNs building on the same principles of iterative geometric reasoning that power
 
 2. **Kipf, T. N. & Welling, M. (2017)**: "Semi-Supervised Classification with Graph Convolutional Networks." *ICLR*. [GCN paper]
 
-3. **Veli
-kovi  , P. et al. (2018)**: "Graph Attention Networks." *ICLR*. [GAT paper]
+3. **Veličković, P. et al. (2018)**: "Graph Attention Networks." *ICLR*. [GAT paper]
 
 4. **Xiong, Z. et al. (2020)**: "Pushing the Boundaries of Molecular Representation for Drug Discovery with the Graph Attention Mechanism." *Journal of Medicinal Chemistry*. [AttentiveFP for drug discovery]
 
