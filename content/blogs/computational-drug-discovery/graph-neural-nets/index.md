@@ -507,22 +507,22 @@ It doesn't just batch graphs; it intelligently *combines* them into one large, s
 
 ---
 
-##### What the `DataLoader` is Doing
+##### **What the `DataLoader` is Doing**
 
 The `DataLoader` takes a list of individual molecule graph objects (`dataset`) and groups them into mini-batches for training a neural network. It performs three key actions:
 
-###### 1. Batching and Concatenation
+###### **1. Batching and Concatenation**
 
 The most important function is the **concatenation** of all graphs in a batch. Instead of creating a list of separate graphs, PyG stitches them together into one large, disconnected graph.
 
 * **Nodes and Edges:** All the node features (`x`), edge indices (`edge_index`), and edge features (`edge_attr`) from the individual molecules are simply stacked end-to-end.
 * **Node Index Transformation:** Crucially, the node indices in the `edge_index` of the later graphs are shifted. For instance, if the first molecule has 13 nodes, the second molecule's node indices will start counting from 13, not 0. This ensures that the edges correctly point to their corresponding nodes in the combined graph.
 
-###### 2. Shuffling
+###### **2. Shuffling**
 
 The `shuffle=True` argument ensures that the order in which the molecules are drawn from the `dataset` is randomized at the beginning of each epoch. This is a standard practice in machine learning to prevent the model from learning biases based on data order.
 
-###### 3. Creating the `batch` Vector
+###### **3. Creating the `batch` Vector**
 
 The `DataLoader` adds a special attribute to the combined graph object: the **`batch` vector**.
 
@@ -533,7 +533,7 @@ This vector is the **key to distinguishing which node belongs to which original 
 
 ---
 
-##### How the Data is Stored and Represented
+##### **How the Data is Stored and Represented**
 
 Let's look at the output of the first batch to illustrate how the data is combined:
 
@@ -544,7 +544,7 @@ Let's look at the output of the first batch to illustrate how the data is combin
 | `Total edges` | 38 | Total bonds from both graphs, **doubled** (since edges are stored for both directions). |
 | `Batch vector` | `[0, 0, ..., 0, 1, 1, ..., 1]` | **The first 13 values are `0`** (for Aspirin's 13 nodes); **the last 6 values are `1`** (for Ethanol's 6 nodes). |
 
-###### The Single Graph Trick 💡
+###### **The Single Graph Trick**
 
 The entire batch is treated as a **single, large, disconnected graph**.
 
@@ -571,7 +571,7 @@ All GNNs follow a common pattern called **message passing**:
 Formally, at layer $k$, for each node $v$:
 
 $$
-\mathbf{m}_v^{(k)} = \text{AGG}\left(\{\text{MSG}(\mathbf{h}_v^{(k-1)}, \mathbf{h}_u^{(k-1)}, \mathbf{e}_{uv}) : u \in \mathcal{N}(v)\}\right)
+\mathbf{m}_v^{(k)} = \text{AGG}\left(\{\text{MSG}(\mathbf{h}_v^{(k-1)}, \mathbf{h}_u^{(k-1)}, \mathbf{f}_{uv}) : u \in \mathcal{N}(v)\}\right)
 $$
 
 $$
@@ -581,7 +581,7 @@ $$
 Where:
 - $\mathbf{h}_v^{(k)}$ is node $v$'s feature vector at layer $k$
 - $\mathcal{N}(v)$ is the set of neighbors of $v$
-- $\mathbf{e}_{uv}$ is the edge feature between $u$ and $v$
+- $\mathbf{f}_{uv}$ is the edge feature between $u$ and $v$
 - MSG, AGG, and UPDATE are learnable functions (neural networks)
 
 **Intuition:** After $k$ layers, each node's representation incorporates information from all nodes within $k$ hops. This is how GNNs capture both local and global molecular structure.
@@ -797,7 +797,9 @@ The convolution process occurs in two simultaneous mathematical operations:
 
 1.  **Feature Transformation ($\mathbf{H}_{W} = \mathbf{H}^{(k-1)} \mathbf{W}^{(k)}$):** The layer first applies its internal, learnable **weight matrix** ($\mathbf{W}$) to the input features $\mathbf{x}$. This is a standard linear transformation that transforms the $36$ input features into the $64$ hidden features, acting like a **learnable filter** to extract relevant chemical properties.
 
-2.  **Neighborhood Aggregation ($\mathbf{\hat{A}} \mathbf{H}_{W}$):** Next, the layer efficiently performs a **normalized aggregation**. It multiplies the transformed features by the $\mathbf{\hat{A}}$ matrix. This operation aggregates (averages) the features of all neighbors (and the node itself) according to the graph's structure.
+2.  **Neighborhood Aggregation ($\mathbf{\hat{A}} \mathbf{H}_{W}$):** Next, the layer efficiently performs a **normalized aggregation**. It multiplies the transformed features by the $\mathbf{\hat{A}}$ matrix. This operation aggregates (averages) the features of all neighbors (and the node itself) according to the graph's structure. <span style="color: #031e95aa; font-weight: bold; font-style: italic;">
+This is the component that enables information flow according to the graph structure, indeed the heart of the graph convolutional layer. 
+</span> 
 
 The result is a new feature matrix $\mathbf{x}$ (now $3 \times 64$) where each atom's vector contains **information from its local environment**. After three layers, each atom sees information from its **3-hop neighborhood**.
 
@@ -818,7 +820,7 @@ The calculation converts the simple bond list into the precise aggregation weigh
 1.  **Adjacency with Self-Loops ($\mathbf{\tilde{A}}$):** The original adjacency matrix ($\mathbf{A}$) is augmented with the identity matrix ($\mathbf{I}$) so that every node includes its own features in the aggregation.
     $$\mathbf{A} = \begin{pmatrix} 0 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 0 \end{pmatrix} \rightarrow \mathbf{\tilde{A}} = \mathbf{A} + \mathbf{I} = \begin{pmatrix} 1 & 1 & 0 \\ 1 & 1 & 1 \\ 0 & 1 & 1 \end{pmatrix}$$
 
-2.  **Degree Normalization ($\mathbf{\tilde{D}}^{-\frac{1}{2}}$):** The degree ($\tilde{d}_i$) of each node in $\mathbf{\tilde{A}}$ is found (2, 3, 2). The inverse square root matrix is then created:
+2.  **Degree Normalization ($\mathbf{\tilde{D}}^{-\frac{1}{2}}$):** The degree ($\tilde{d}_i$) of each node in $\mathbf{\tilde{A}}$ is found (2, 3, 2), this is the sum of each row in $\mathbf{\tilde{A}}$. The inverse square root matrix is then created:
     $$\mathbf{\tilde{D}}^{-\frac{1}{2}} = \begin{pmatrix} 1/\sqrt{2} & 0 & 0 \\ 0 & 1/\sqrt{3} & 0 \\ 0 & 0 & 1/\sqrt{2} \end{pmatrix}$$
 
 3.  **Final $\mathbf{\hat{A}}$ Matrix:** Multiplying the three matrices results in the final, symmetric weighting matrix.
@@ -837,42 +839,107 @@ The values in this matrix define the exact weight applied to each neighbor's fea
 
 The final node feature matrix (from $\text{conv3}$) is then passed to the **Global Mean Pooling** layer. This layer uses the `data.batch` tensor to **average** the feature vectors of all atoms, condensing the entire graph's information into a single $1 \times 64$ vector for the final $\text{MLP}$ head.
 ***
-
 ***
 
-### 3.3 Graph Attention Networks (GAT)
+## 3.3 Graph Attention Networks (GAT)
 
-**Limitation of GCN:** In molecules, not all bonds are equally important. Consider a carbon atom bonded to:
-- Three hydrogen atoms (C-H bonds)
-- One oxygen atom (C-O bond)
+The GAT architecture solves the "all-bonds-are-equal" problem inherent in GCN by introducing a mechanism that allows the model to **selectively focus on the most important neighbors** (bonds).
 
-The C-O bond is chemically much more significant for determining reactivity, but GCN treats all four neighbors almost equally (with only degree normalization differences).
+### The Intuition
 
-**Solution:** Graph Attention Networks (GATs) learn **attention weights** $\alpha_{vu}$ that determine how much each neighbor $u$ contributes to updating node $v$:
+Think of attention weights as importance scores. In a molecule, a carbon atom bonded to an oxygen (electronegative) and three hydrogens should pay more attention to the oxygen when updating its representation, because that oxygen dominates the atom's chemical behavior. GAT learns these importance scores automatically from data.
+
+---
+
+### Solution: Learning Attention Weights ($\alpha_{vu}$)
+
+GATs learn **attention weights** $\alpha_{vu}$ that determine how much each neighbor $u$ contributes to updating the central node $v$.
+
+The GAT update rule at layer $k$ is:
+$$\mathbf{h}_v^{(k)} = \sigma\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu} \cdot \mathbf{W}^{(k)} \mathbf{h}_u^{(k-1)}\right)$$
+
+where $u \in \mathcal{N}(v)$ includes the node $v$ itself (self-attention), allowing it to retain its own information while incorporating neighbor features.
+
+---
+
+#### Stage 1: Computing the Raw Attention Score ($e_{vu}$)
+
+The score $e_{vu}$ measures the relevance between $v$ and $u$.
 
 $$
-\mathbf{h}_v^{(k)} = \sigma\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu} \cdot \mathbf{W}^{(k)} \mathbf{h}_u^{(k-1)}\right)
+e_{vu} = \text{ELU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_v \,||\, \mathbf{W}\mathbf{h}_u \,||\, \mathbf{f}_{vu}]\right)
 $$
 
-The attention coefficient is computed as:
+where $||$ denotes **concatenation** (stacking vectors end-to-end).
+
+**Breaking down the components:**
+
+* **Feature Transformation:** Both the central node and neighbor features are first transformed using the learned weight matrix $\mathbf{W}$
+* **Edge Features ($\mathbf{f}_{vu}$):** For molecular graphs, these encode bond properties: bond type (single/double/triple/aromatic), bond length, stereochemistry, and whether the bond is in a ring structure
+* **Concatenation:** The transformed features of the central node ($\mathbf{W}\mathbf{h}_v$), the neighbor ($\mathbf{W}\mathbf{h}_u$), and the edge features ($\mathbf{e}_{vu}$) are stacked together
+* **The Attention Vector ($\mathbf{a}$):** This is a **trainable parameter** (learned via backpropagation) that acts as a simple neural network layer to compute a scalar score from the concatenated features
+* **ELU Activation:** This is used instead of standard ReLU to allow small negative gradients, preventing attention weights from getting stuck at zero during training
+
+**Tracking dimensions:** If node features have dimension $d_{in} \times 1$, and $\mathbf{W}$ has dimension $d_{out} \times d_{in}$, then:
+- After transformation: $\mathbf{W}\mathbf{h}_v$ and $\mathbf{W}\mathbf{h}_u$ each have dimension $d_{out} \times 1$
+- Concatenation creates a vector of dimension $(2d_{out} + d_{edge}) \times 1$
+- The attention vector $\mathbf{a}$ has dimension $(2d_{out} + d_{edge}) \times 1$
+- Result: $\mathbf{a}^T [\mathbf{W}\mathbf{h}_v \,||\, \mathbf{W}\mathbf{h}_u \,||\, \mathbf{f}_{vu}]$ produces a single scalar $e_{vu}$ (dimension $1 \times 1$) as this is a dot product between two vectors
+
+---
+
+#### Stage 2: Normalization (Softmax)
+
+The final attention coefficient $\alpha_{vu}$ is obtained by applying $\text{Softmax}$ to normalize the raw scores across all neighbors:
 
 $$
 \alpha_{vu} = \frac{\exp(e_{vu})}{\sum_{u' \in \mathcal{N}(v)} \exp(e_{vu'})}
 $$
 
-Where the attention score $e_{vu}$ is:
+This ensures that all attention weights for node $v$ sum to 1, creating a probability distribution over its neighbors.
 
-$$
-e_{vu} = \text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_v \,||\, \mathbf{W}\mathbf{h}_u \,||\, \mathbf{e}_{vu}]\right)
-$$
+---
 
-Here:
-- $\mathbf{a}$ is a learnable attention vector
-- $||$ denotes concatenation
-- $\mathbf{e}_{vu}$ are the edge features (bond type, etc.)
-- LeakyReLU allows small negative values through
+### Multi-Head Attention
 
-**Multi-Head Attention:** Like Transformers (recall AlphaFold's attention from Blog 3), GATs use multiple attention heads. Each head learns different attention patterns, and outputs are concatenated or averaged.
+To achieve robustness and capture diverse patterns, GAT employs **multi-head attention**. Each head $i$ has its own independent weight matrix $\mathbf{W}^{(i)}$ and attention vector $\mathbf{a}^{(i)}$ to learn different aspects of neighbor importance.
+
+The outputs from $K$ attention heads are combined either by:
+
+**Concatenation** (typically used in intermediate layers):
+$$\mathbf{h}_v^{(k)} = \mathop{\Vert}_{i=1}^{K} \sigma\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu}^{(i)} \cdot \mathbf{W}^{(i)} \mathbf{h}_u^{(k-1)}\right)$$
+
+**Averaging** (typically used in the final layer):
+$$\mathbf{h}_v^{(k)} = \sigma\left(\frac{1}{K}\sum_{i=1}^{K}\sum_{u \in \mathcal{N}(v)} \alpha_{vu}^{(i)} \cdot \mathbf{W}^{(i)} \mathbf{h}_u^{(k-1)}\right)$$
+
+where $\Vert$ denotes concatenation across the $K$ heads.
+
+---
+
+### The Nature of GAT Attention
+
+GAT uses a **local, additive attention** mechanism, which is fundamentally simpler than the **global, multiplicative attention (QKV)** used in Transformers:
+
+* **GAT is Additive:** The relevance score is computed by applying a weight vector ($\mathbf{a}$) to the **concatenated** features. It focuses only on a node's immediate neighbors (atoms directly bonded in molecular graphs).
+* **Transformer is Multiplicative (QKV):** The score is computed via the **dot product** (multiplication) of the **Query** and **Key** vectors, typically operating on all elements in a sequence or set.
+
+For molecular graphs, this local attention is actually a **feature, not a limitation**—we want chemistry-aware attention based on actual chemical bonds, not arbitrary long-range interactions between distant atoms.
+
+Despite the simpler calculation mechanism, both models use **multi-head attention** to enhance the model's capacity to learn diverse patterns of neighbor importance.
+
+---
+
+### Interpretability for Drug Discovery
+
+After training, the learned attention weights $\alpha_{vu}$ provide valuable insights into molecular structure-activity relationships. Examining these weights reveals which bonds the model considers most important for predicting a property.
+
+In drug discovery, high-attention bonds often correspond to known **pharmacophores**—functional groups critical for biological activity. For example:
+- Hydrogen bond donors/acceptors may receive high attention for binding affinity prediction
+- Aromatic rings may be weighted heavily for membrane permeability
+- Charged groups may dominate attention in models predicting protein-ligand interactions
+
+This interpretability allows chemists to understand *why* a model makes certain predictions, bridging the gap between black-box machine learning and traditional medicinal chemistry knowledge.
+
 
 #### Implementation:
 
@@ -936,20 +1003,20 @@ class MoleculeGAT(torch.nn.Module):
         self.dropout = dropout
 
     def forward(self, data):
-        x, edge_index, batch = data.x, data.edge_index, data.batch
+        x, edge_index, edge_attrs, batch = data.x, data.edge_index, data.edge_attrs, data.batch
 
         # GAT layer 1
-        x = self.conv1(x, edge_index)
+        x = self.conv1(x, edge_index, edge_attrs=edge_attrs)
         x = self.bn1(x)
         x = F.elu(x)  # ELU works well with attention
 
         # GAT layer 2
-        x = self.conv2(x, edge_index)
+        x = self.conv2(x, edge_index, edge_attrs=edge_attrs)
         x = self.bn2(x)
         x = F.elu(x)
 
         # GAT layer 3
-        x = self.conv3(x, edge_index)
+        x = self.conv3(x, edge_index , edge_attrs=edge_attrs)
         x = self.bn3(x)
         x = F.elu(x)
 
@@ -974,18 +1041,10 @@ model = MoleculeGAT(
 )
 
 print(f"Total parameters: {sum(p.numel() for p in model.parameters())}")
-```
 
-**Key Differences from GCN:**
 
-1. **Attention weights**: Model learns which neighbors are important (interpretable!)
-2. **Multi-head attention**: Each head can focus on different chemical patterns
-3. **ELU activation**: Empirically works better than ReLU for attention mechanisms
-4. **More parameters**: GAT has ~2-3x more parameters than GCN due to attention
+# Extracting Attention Weights (for interpretability):
 
-**Extracting Attention Weights (for interpretability):**
-
-```python
 def get_attention_weights(model, data):
     """
     Extract attention weights from the first GAT layer.
@@ -1013,6 +1072,32 @@ for i in range(min(5, edge_index.shape[1])):
     weights = attn[i]  # Shape: [num_heads]
     print(f"Edge {src.item()} -> {dst.item()}: {weights.detach().cpu().numpy()}")
 ```
+
+```
+Total parameters: 145665
+Attention weights for first 5 edges:
+Edge 0 -> 1: [0.25878173 0.24190721 0.31295684 0.25071707]
+Edge 1 -> 0: [0.5006598  0.48124796 0.44281974 0.49798584]
+Edge 1 -> 2: [0.55969757 0.46105593 0.5218173  0.49253324]
+Edge 2 -> 1: [0.23825145 0.26089552 0.22792448 0.25624594]
+Edge 1 -> 3: [0.5468191  0.44889814 0.5417398  0.5044353 ]
+```
+
+
+## Key Differences from GCN (as Implemented in MoleculeGAT)
+
+The Graph Attention Network (GAT) fundamentally differs from GCN by replacing fixed, degree-based weighting with **learnable, data-driven attention weights**, leading to higher expressiveness and interpretability.
+
+| Feature | GCN ($\text{GCNConv}$) | GAT ($\text{GATConv}$) | **Key Difference** |
+| :--- | :--- | :--- | :--- |
+| **Weighting Method** | **Fixed** (Inverse of degree normalization $\mathbf{\hat{A}}$) | **Learned** ($\alpha_{vu}$) | GAT learns **importance scores** based on neighbor features. |
+| **Edge Features** | **Ignored** | **Integrated** (`edge_attrs=edge_attrs`) | GAT can use **bond information** to modulate attention scores. |
+| **Multi-Head** | Not Applicable | **Standard Feature** (`heads=4`) | Allows the model to capture **diverse chemical patterns** simultaneously. |
+| **Parameter Count** | Low (~13k) | High (~146k) | GAT requires **more weights** to learn multiple attention heads and the attention vector $\mathbf{a}$. |
+
+
+
+***
 
 ### 3.4 Message Passing Neural Networks (MPNN)
 
