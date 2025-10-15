@@ -944,51 +944,59 @@ This interpretability allows chemists to understand *why* a model makes certain 
 #### Implementation:
 
 ```python
-from torch_geometric.nn import GATConv
+from torch_geometric.nn import GATv2Conv
+import torch.nn.functional as F
+import torch
+from torch_geometric.nn import global_mean_pool, global_add_pool
 
-class MoleculeGAT(torch.nn.Module):
+
+class MoleculeGATv2(torch.nn.Module):
     """
-    Graph Attention Network for molecular property prediction.
+    Graph Attention Network for molecular property prediction using GATv2Conv.
 
-    Key difference from GCN: learns attention weights to focus on
-    chemically important neighbors.
+    GATv2Conv offers improved expressiveness and better handling of edge features
+    compared to the original GATv2Conv.
     """
     def __init__(
         self,
         num_node_features,
+        num_edge_features, # Add num_edge_features parameter
         hidden_dim=64,
         num_classes=1,
         num_heads=4,
         dropout=0.2
     ):
-        super(MoleculeGAT, self).__init__()
+        super(MoleculeGATv2, self).__init__()
 
-        # GAT layers with multi-head attention
+        # GATv2 layers with multi-head attention
         # First layer: heads concatenated
-        self.conv1 = GATConv(
+        self.conv1 = GATv2Conv(
             num_node_features,
             hidden_dim,
             heads=num_heads,
             concat=True,
-            dropout=dropout
+            dropout=dropout,
+            edge_dim=num_edge_features # Specify edge_dim for edge features
         )
 
         # Second layer: heads concatenated
-        self.conv2 = GATConv(
+        self.conv2 = GATv2Conv(
             hidden_dim * num_heads,  # Input is concatenated heads
             hidden_dim,
             heads=num_heads,
             concat=True,
-            dropout=dropout
+            dropout=dropout,
+            edge_dim=num_edge_features # Specify edge_dim
         )
 
         # Third layer: heads averaged (not concatenated)
-        self.conv3 = GATConv(
+        self.conv3 = GATv2Conv(
             hidden_dim * num_heads,
             hidden_dim,
             heads=num_heads,
             concat=False,  # Average heads for final layer
-            dropout=dropout
+            dropout=dropout,
+            edge_dim=num_edge_features # Specify edge_dim
         )
 
         # Batch normalization
@@ -1003,20 +1011,20 @@ class MoleculeGAT(torch.nn.Module):
         self.dropout = dropout
 
     def forward(self, data):
-        x, edge_index, edge_attrs, batch = data.x, data.edge_index, data.edge_attrs, data.batch
+        x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
 
-        # GAT layer 1
-        x = self.conv1(x, edge_index, edge_attrs=edge_attrs)
+        # GATv2 layer 1, passing edge_attr
+        x = self.conv1(x, edge_index, edge_attr=edge_attr)
         x = self.bn1(x)
         x = F.elu(x)  # ELU works well with attention
 
-        # GAT layer 2
-        x = self.conv2(x, edge_index, edge_attrs=edge_attrs)
+        # GATv2 layer 2, passing edge_attr
+        x = self.conv2(x, edge_index, edge_attr=edge_attr)
         x = self.bn2(x)
         x = F.elu(x)
 
-        # GAT layer 3
-        x = self.conv3(x, edge_index , edge_attrs=edge_attrs)
+        # GATv2 layer 3, passing edge_attr
+        x = self.conv3(x, edge_index, edge_attr=edge_attr)
         x = self.bn3(x)
         x = F.elu(x)
 
@@ -1032,8 +1040,9 @@ class MoleculeGAT(torch.nn.Module):
         return x
 
 # Initialize model
-model = MoleculeGAT(
+model = MoleculeGATv2(
     num_node_features=36,
+    num_edge_features=10, # Pass num_edge_features
     hidden_dim=64,
     num_classes=1,
     num_heads=4,
@@ -1053,11 +1062,10 @@ def get_attention_weights(model, data):
     model.eval()
 
     # Forward pass through first layer with return_attention_weights
-    x, edge_index = data.x, data.edge_index
-
+    x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr # Include edge_attr
     # Get attention weights from first layer
     _, (edge_index, attention_weights) = model.conv1(
-        x, edge_index, return_attention_weights=True
+        x, edge_index, edge_attr=edge_attr, return_attention_weights=True # Pass edge_attr
     )
 
     return edge_index, attention_weights
@@ -1071,16 +1079,22 @@ for i in range(min(5, edge_index.shape[1])):
     src, dst = edge_index[:, i]
     weights = attn[i]  # Shape: [num_heads]
     print(f"Edge {src.item()} -> {dst.item()}: {weights.detach().cpu().numpy()}")
+
+
+# prediction
+pred = model(data)
+print(f"Predicted logit: {pred.item():.4f}")
 ```
 
 ```
-Total parameters: 145665
+Total parameters: 294401
 Attention weights for first 5 edges:
-Edge 0 -> 1: [0.25878173 0.24190721 0.31295684 0.25071707]
-Edge 1 -> 0: [0.5006598  0.48124796 0.44281974 0.49798584]
-Edge 1 -> 2: [0.55969757 0.46105593 0.5218173  0.49253324]
-Edge 2 -> 1: [0.23825145 0.26089552 0.22792448 0.25624594]
-Edge 1 -> 3: [0.5468191  0.44889814 0.5417398  0.5044353 ]
+Edge 0 -> 1: [0.19470206 0.21984781 0.27020392 0.2467302 ]
+Edge 1 -> 0: [0.5418553  0.5482287  0.519141   0.50098497]
+Edge 1 -> 2: [0.4868451  0.48873252 0.5155894  0.4423833 ]
+Edge 2 -> 1: [0.27872428 0.26841444 0.23641402 0.2993698 ]
+Edge 1 -> 3: [0.50171024 0.51037735 0.5290461  0.47196847]
+Predicted logit: 0.0170
 ```
 
 
@@ -1279,9 +1293,9 @@ Parameter breakdown:
   MLP head: 2,113 (0.3%)
 
 Sample predictions:
-  Ethanol      (CCO         ): 0.118
-  Acetic Acid  (CC(=O)O     ): 0.112
-  Benzene      (c1ccccc1    ): -0.040
+  Ethanol      (CCO         ): -0.182
+  Acetic Acid  (CC(=O)O     ): -0.165
+  Benzene      (c1ccccc1    ): 0.165
 ```
 
 ---
@@ -1309,19 +1323,15 @@ The complexity of $\text{NNConv}$ is in ensuring the edge network outputs the co
 * In the provided code, `edge_network2` is designed to produce $4096$ values, reflecting this requirement.
 
 ---
-
 ## 3.5 Architecture Comparison: GCN, GAT, and MPNN
 
-| Architecture | Edge Features Use | Key Mechanism | Strengths | Best For |
-|:-------------|:------------------|:--------------|:----------|:---------|
-| **GCN** | Optional/Limited | **Uniform** aggregation ($\mathbf{\hat{A}}$) | Fast, simple, good baseline. | Topology-heavy tasks (e.g., node classification). |
-| **GAT** | Integrated in **Attention** | **Learned weights** ($\alpha_{vu}$) | Adaptively weights neighbors; provides interpretability. | When neighbor importance varies chemically. |
-| **MPNN (NNConv)** | **Generates Weights** | **Edge-conditioned** messages | Explicitly models bond differences; strongest edge differentiation. | Bond-critical tasks (e.g., reactions, conformation). |
+| Architecture | Edge Features Use | Key Mechanism | How Edge Features Are Used | Strengths | Best For |
+|:-------------|:------------------|:--------------|:---------------------------|:----------|:---------|
+| **GCN** | Optional (concatenation) | **Uniform** aggregation ($\mathbf{\hat{A}}$) | Concatenated to node features: $[\mathbf{h}_v \,||\, \mathbf{h}_u \,||\, \mathbf{f}_{vu}]$; same aggregation for all edge types | Fast, simple, interpretable baseline | Topology-driven tasks; baseline comparisons |
+| **GAT/GATv2** | **Integrated in attention** | **Learned attention weights** ($\alpha_{vu}$) | Modulate attention scores: $e_{vu} = \text{LeakyReLU}(\mathbf{a}^T [\mathbf{W}\mathbf{h}_v \,||\, \mathbf{W}\mathbf{h}_u \,||\, \mathbf{f}_{vu}])$; different bonds get different attention but same transformation $\mathbf{W}$ | Adaptively weights neighbors; interpretable attention; moderate edge utilization | When neighbor importance varies; interpretability needed |
+| **MPNN (NNConv)** | **Generates weight matrices** | **Edge-conditioned transformations** | Generate unique matrices per bond: $\mathbf{W}_{uv} = \text{EdgeNetwork}(\mathbf{f}_{uv})$; single vs. double bonds produce different transformations | Strongest edge differentiation; explicit bond-type modeling | Bond-critical tasks (reactions, stereochemistry, conjugation) |
 
-**Important Note on Edge Features:**
-
-* **GCN/GAT:** Edge features are typically **concatenated** to node features or used to modulate the attention score. The core aggregation mechanism remains the same for all edge types.
-* **MPNN (NNConv):** Edge features generate **unique transformation matrices** ($\mathbf{W}_{uv}$) for *every single bond*. This allows the model to differentiate between a single $\text{C-C}$ bond and a double $\text{C=C}$ bond with the maximum possible impact on feature transformation.
+**Key Distinction:** GCN concatenates edge features, GAT uses them to weight neighbor importance, MPNN uses them to generate bond-specific transformation matrices.
 
 
 ***
@@ -1421,26 +1431,22 @@ We'll use a simplified toxicity prediction task. In practice, you'd use datasets
 - **BACE**: Binding affinity to BACE enzyme
 - **ESOL**: Aqueous solubility
 
+
+### 4.2 Training Loop
+
+A simple pytorch forward and backward pass plus a callback.
+
+
 ```python
+from torch_geometric.loader import DataLoader
+from sklearn.metrics import roc_auc_score, accuracy_score
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import torch
 
-# Example dataset (in practice, load from CSV or database)
-data_dict = {
-    'smiles': [
-        'CC(C)Cc1ccc(cc1)C(C)C',  # Ibuprofen - not toxic
-        'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',  # Caffeine - not toxic
-        'CC(=O)Oc1ccccc1C(=O)O',  # Aspirin - not toxic
-        'CCO',  # Ethanol - not toxic (at low doses)
-        'c1ccccc1',  # Benzene - toxic
-        'CCl4',  # Carbon tetrachloride - toxic
-        'c1cc(ccc1N)N',  # p-Phenylenediamine - toxic
-        'C1=CC=C(C=C1)O',  # Phenol - toxic
-    ],
-    'toxic': [0, 0, 0, 0, 1, 1, 1, 1]  # Binary labels
-}
 
-df = pd.DataFrame(data_dict)
+# utility functions
 
 # Convert to graph objects
 def create_dataset(smiles_list, labels):
@@ -1454,26 +1460,6 @@ def create_dataset(smiles_list, labels):
             print(f"Error processing {smiles}: {e}")
     return dataset
 
-dataset = create_dataset(df['smiles'].tolist(), df['toxic'].tolist())
-
-# Train/test split
-train_data, test_data = train_test_split(
-    dataset,
-    test_size=0.2,
-    random_state=42,
-    stratify=[d.y.item() for d in dataset]
-)
-
-print(f"Training samples: {len(train_data)}")
-print(f"Test samples: {len(test_data)}")
-```
-
-### 4.2 Training Loop
-
-```python
-from torch_geometric.loader import DataLoader
-from sklearn.metrics import roc_auc_score, accuracy_score
-import numpy as np
 
 def train_epoch(model, loader, optimizer, criterion, device):
     """Train for one epoch."""
@@ -1486,7 +1472,7 @@ def train_epoch(model, loader, optimizer, criterion, device):
 
         # Forward pass
         out = model(batch)
-        loss = criterion(out, batch.y)
+        loss = criterion(out, batch.y.unsqueeze(1)) # Fix: Unsqueeze target tensor
 
         # Backward pass
         loss.backward()
@@ -1495,6 +1481,7 @@ def train_epoch(model, loader, optimizer, criterion, device):
         total_loss += loss.item() * batch.num_graphs
 
     return total_loss / len(loader.dataset)
+
 
 def evaluate(model, loader, criterion, device):
     """Evaluate model."""
@@ -1507,7 +1494,7 @@ def evaluate(model, loader, criterion, device):
         for batch in loader:
             batch = batch.to(device)
             out = model(batch)
-            loss = criterion(out, batch.y)
+            loss = criterion(out, batch.y.unsqueeze(1)) # Fix: Unsqueeze target tensor
 
             total_loss += loss.item() * batch.num_graphs
 
@@ -1529,14 +1516,59 @@ def evaluate(model, loader, criterion, device):
 
     return avg_loss, auc, acc
 
+# Example dataset (in practice, load from CSV or database)
+data_dict = {
+    'smiles': [
+        'CC(C)Cc1ccc(cc1)C(C)C',  # Ibuprofen - not toxic
+        'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',  # Caffeine - not toxic
+        'CC(=O)Oc1ccccc1C(=O)O',  # Aspirin - not toxic
+        'CCO',  # Ethanol - not toxic (at low doses)
+        'c1ccccc1',  # Benzene - toxic
+        'C(Cl)(Cl)(Cl)Cl',  # Carbon tetrachloride - toxic
+        'c1cc(ccc1N)N',  # p-Phenylenediamine - toxic
+        'C1=CC=C(C=C1)O',  # Phenol - toxic
+    ],
+    'toxic': [0, 0, 0, 0, 1, 1, 1, 1]  # Binary labels
+}
+
+# transform to a dataframe
+df = pd.DataFrame(data_dict)
+
+
+# create the dataset
+dataset = create_dataset(df['smiles'].tolist(), df['toxic'].tolist())
+
+# Train/test split
+train_data, test_data = train_test_split(
+    dataset,
+    test_size=0.2,
+    random_state=42,
+    stratify=[d.y.item() for d in dataset]
+)
+
+print(f"Training samples: {len(train_data)}")
+print(f"Test samples: {len(test_data)}")
+
 # Setup
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = MoleculeGAT(
+
+# GAT model
+model = MoleculeGATv2(
     num_node_features=36,
+    num_edge_features=10,
     hidden_dim=64,
     num_classes=1,
     num_heads=4
 ).to(device)
+
+# or MPNN model
+# model = MoleculeMPNN(
+#     num_node_features=36,
+#     num_edge_features=10,  # From bond feature extraction
+#     hidden_dim=64,
+#     num_classes=1,
+#     dropout=0.2
+# ).to(device)
 
 # Data loaders
 train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
@@ -1548,14 +1580,15 @@ criterion = torch.nn.BCEWithLogitsLoss()
 
 # Learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode='min', factor=0.5, patience=10, verbose=True
+    optimizer, mode='min', factor=0.5, patience=2
 )
 
 # Training loop
-num_epochs = 100
+num_epochs = 30
 best_auc = 0
 
 for epoch in range(num_epochs):
+    print("-" * 20, " epoch: ", epoch)
     # Train
     train_loss = train_epoch(model, train_loader, optimizer, criterion, device)
 
@@ -1569,7 +1602,7 @@ for epoch in range(num_epochs):
     # Save best model
     if test_auc > best_auc:
         best_auc = test_auc
-        torch.save(model.state_dict(), 'best_model.pt')
+        # torch.save(model.state_dict(), 'best_model.pt')
 
     if epoch % 10 == 0:
         print(f"Epoch {epoch:03d} | "
@@ -1611,40 +1644,7 @@ def augment_smiles(smiles, n_augment=5):
     return augmented
 ```
 
-**3. Early Stopping:**
-
-```python
-class EarlyStopping:
-    def __init__(self, patience=20, min_delta=0.001):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.best_loss = None
-        self.early_stop = False
-
-    def __call__(self, val_loss):
-        if self.best_loss is None:
-            self.best_loss = val_loss
-        elif val_loss > self.best_loss - self.min_delta:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_loss = val_loss
-            self.counter = 0
-
-        return self.early_stop
-
-# Usage
-early_stopping = EarlyStopping(patience=20)
-for epoch in range(num_epochs):
-    # ... training code ...
-    if early_stopping(test_loss):
-        print("Early stopping triggered")
-        break
-```
-
-**4. Gradient Clipping:**
+**3. Gradient Clipping:**
 
 GNNs can suffer from exploding gradients, especially with deep architectures:
 
@@ -1681,39 +1681,26 @@ There's a beautiful conceptual connection between GNN message passing and AlphaF
 - AlphaFold's Evoformer uses multi-head attention in MSA rows/columns
 - Both learn to focus on the most relevant parts of the structure
 
-### 5.2 GNNs in the Drug Discovery Pipeline
+## 5. Applications of GNNs in Drug Discovery 💊
 
-Recall the drug discovery pipeline from Blog 1. Here's where GNNs fit:
+### GNNs in the Drug Discovery Pipeline
 
-**Stage 2: Hit Discovery**
-- **Virtual screening**: GNNs predict binding affinity, filtering billions of molecules to thousands of candidates
-- **Property prediction**: GNNs screen for drug-likeness, toxicity, solubility before expensive synthesis
+GNNs accelerate drug development by rapidly evaluating millions of candidates:
 
-**Stage 3: Lead Optimization**
-- **ADMET prediction**: GNNs predict absorption, distribution, metabolism, excretion, toxicity
-- **Multi-objective optimization**: GNNs evaluate candidates across multiple properties simultaneously
+| Pipeline Stage | GNN Role | Example Task |
+|:---------------|:---------|:-------------|
+| **Hit Discovery** | Virtual Screening | Predict binding affinity, toxicity, solubility to filter candidates |
+| **Lead Optimization** | Multi-Objective Optimization | Predict ADMET properties to optimize compounds |
+| **Preclinical Testing** | Early Toxicity Screening | Identify toxic compounds before expensive animal testing |
 
-**Stage 4: Preclinical Testing**
-- **Toxicity prediction**: GNNs identify potential toxicity issues early, reducing animal testing
+**Integrated AI Workflow:** AlphaFold (predict protein structure) → GNNs (evaluate candidates) → Molecular Docking (predict binding pose)
 
-**The Complete Pipeline:**
-1. **AlphaFold** (Blog 3) � Predict protein target structure
-2. **GNNs** (This blog) � Generate and evaluate drug candidates
-3. **Molecular Docking** (Blog 6) � Predict binding pose and affinity
-4. **Generative Models** (Blog 5) � Design optimized molecules
+### Advanced Applications
 
-### 5.3 Advanced Applications (Brief Overview)
-
-While we've focused on property prediction, GNNs enable more sophisticated applications:
-
-| Application | GNN Role | Connects To |
-|:------------|:---------|:------------|
-| **Protein-Ligand Binding** | Encode small molecule; combine with protein representation (from AlphaFold) to predict binding affinity | Blog 3 (AlphaFold) + Blog 6 (Docking) |
-| **De Novo Generation** | GNN encoder in VAE/GAN; compress molecules to latent space; decoder generates new molecules | Blog 5 (Generative Models) |
-| **Retrosynthesis** | Predict synthetic routes; GNN learns reaction patterns from chemical databases | Practical drug development |
-| **Reaction Prediction** | Predict products of chemical reactions; GNN models reactants and conditions | Synthesis planning |
-
-We'll explore the first two in detail in upcoming blogs.
+Beyond property prediction, GNNs enable:
+- **Protein-Ligand Binding**: Predict binding affinity by encoding both molecule and protein structure
+- **De Novo Generation**: Generate novel molecules with desired properties using VAE/GAN architectures
+- **Retrosynthesis**: Predict synthetic routes and reaction outcomes from chemical databases
 
 ---
 
@@ -1721,69 +1708,21 @@ We'll explore the first two in detail in upcoming blogs.
 
 ### Current Limitations
 
-**1. 2D Structure Only:**
-Standard GNNs (GCN, GAT, MPNN) operate on 2D molecular graphs they encode connectivity but not 3D geometry. This limits accuracy for tasks where shape matters:
-- Binding affinity depends on 3D fit into protein pocket
-- Conformational flexibility affects bioavailability
-- Stereoisomers have identical 2D graphs but opposite biological effects
-
-**2. Over-Smoothing:**
-In very deep GNNs (>10 layers), node features become too similar, losing discriminative information. Information from distant nodes gets "smoothed out."
-
-**Solution:** Skip connections, residual connections, or architectural changes (e.g., jumping knowledge networks)
-
-**3. Expressiveness Limits:**
-Theoretical work shows that standard message-passing GNNs cannot distinguish certain graph structures (related to the Weisfeiler-Lehman graph isomorphism test).
-
-**Practical impact:** Limited for most molecular tasks, but relevant for complex topologies
-
-**4. Data Efficiency:**
-GNNs require substantial training data (thousands of labeled examples). For rare properties with limited experimental data, classical methods may be competitive.
+1. **2D Structure Only**: Standard GNNs ignore 3D geometry (conformation, stereochemistry) crucial for binding affinity
+2. **Over-Smoothing**: Deep networks cause distant node features to become indistinguishable
+3. **Data Scarcity**: Require thousands of labeled examples, often unavailable for rare properties
 
 ### Future Directions
 
-**1. 3D-Aware GNNs:**
-Next-generation architectures incorporate 3D atomic coordinates:
-
-- **SchNet**: Uses continuous-filter convolutions on interatomic distances
-- **DimeNet**: Includes directional information (angles between bonds)
-- **EGNN**: Equivariant GNN respecting rotations and translations
-- **SphereNet**: Uses spherical message passing
-
-These are **SE(3)-equivariant**: like AlphaFold's IPA, they respect 3D symmetries (rotation, translation).
-
-**2. Pre-trained Foundation Models:**
-Following BERT/GPT success in NLP:
-
-- **Pre-train** GNNs on millions of unlabeled molecules (self-supervised)
-- **Fine-tune** for specific tasks with limited labeled data
-- Examples: Grover, MolCLR, Uni-Mol
-
-**3. Integration with Physics:**
-Hybrid models combining GNN-learned features with physics-based descriptors:
-- Quantum mechanics (electron density, orbital energies)
-- Force fields (molecular dynamics)
-- Best of both worlds: data-driven learning + physical constraints
-
-**4. Explainability:**
-Making GNN predictions interpretable:
-- Attention weights show which atoms/bonds are important
-- GNNExplainer identifies subgraphs crucial for predictions
-- Critical for medicinal chemists to trust and act on predictions
+1. **3D-Aware GNNs**: Models like SchNet and DimeNet incorporate atomic coordinates and are SE(3)-equivariant (rotation/translation invariant)
+2. **Pre-trained Foundation Models**: Pre-train on massive unlabeled datasets (like ChemBERTa), then fine-tune with limited task-specific data
+3. **Explainability**: Tools like GNNExplainer and attention weight visualization make predictions interpretable for medicinal chemists
 
 ---
 
+
 ## 7. Conclusion
 
-### What We've Built
-
-In this technically-focused post, we've covered the complete pipeline for molecular property prediction with GNNs:
-
-1. **Graph Construction**: Converting SMILES to PyTorch Geometric graphs with rich node/edge features
-2. **Feature Engineering**: Extracting chemical properties (element, charge, hybridization, bond type)
-3. **Architecture Implementation**: Building GCN, GAT, and MPNN models from scratch
-4. **Training Infrastructure**: Complete training loops with proper evaluation metrics
-5. **Practical Considerations**: Class imbalance, early stopping, gradient clipping
 
 ### Key Takeaways
 
@@ -1791,7 +1730,8 @@ In this technically-focused post, we've covered the complete pipeline for molecu
 - **Message passing** is the core computational pattern: information flows through bonds, updating atom representations iteratively
 - **Architecture matters**: GCN for baselines, GAT for interpretability, MPNN for edge-dependent tasks
 - **GNNs are state-of-the-art** for molecular property prediction, consistently outperforming fingerprints and SMILES-based models
-- **Connections to AlphaFold**: Both GNNs and AlphaFold use iterative local aggregation to capture global properties
+- **Connections to AlphaFold**: Both GNNs and AlphaFold use iterative local aggregation to capture global properties. Remember, Alphafold2 uses Evoformer and Structure modlues that are not GNNs, but a special type of sequence model.
+
 
 ### Looking Forward: The Complete Drug Discovery Pipeline
 
@@ -1805,10 +1745,8 @@ Next, we'll explore how to **design** new molecules:
 **Blog 5 (Next): Generative Models for De Novo Drug Design**
 
 Now that we can **predict** molecular properties with GNNs, how do we **generate** new molecules optimized for multiple objectives? We'll explore:
-- Variational Autoencoders (VAEs) with GNN encoders
-- Generative Adversarial Networks (GANs) for molecules
-- Diffusion models for 3D molecule generation
-- Reinforcement learning for optimization
+- A short overview of Variational Autoencoders (VAEs) and Generative Adversarial Networks (GANs) for molecules
+- Diffusion models for 3D molecule generation and some theory
 - Transformer-based generators (MolGPT, ChemFormer)
 
 **Blog 6: Molecular Docking**
@@ -1834,13 +1772,10 @@ kovi  , P. et al. (2018)**: "Graph Attention Networks." *ICLR*. [GAT paper]
 
 4. **Xiong, Z. et al. (2020)**: "Pushing the Boundaries of Molecular Representation for Drug Discovery with the Graph Attention Mechanism." *Journal of Medicinal Chemistry*. [AttentiveFP for drug discovery]
 
-5. **Sch�tt, K. T. et al. (2017)**: "SchNet: A continuous-filter convolutional neural network for modeling quantum interactions." *NeurIPS*. [3D-aware GNN]
 
-6. **Wu, Z. et al. (2018)**: "MoleculeNet: A Benchmark for Molecular Machine Learning." *Chemical Science*. [Standard benchmarks]
+5. **Landrum, G.**: RDKit: Open-source cheminformatics. [http://www.rdkit.org](http://www.rdkit.org)
 
-7. **Landrum, G.**: RDKit: Open-source cheminformatics. [http://www.rdkit.org](http://www.rdkit.org)
-
-8. **Fey, M. & Lenssen, J. E. (2019)**: "Fast Graph Representation Learning with PyTorch Geometric." *ICLR Workshop*. [PyTorch Geometric library]
+6. **Fey, M. & Lenssen, J. E. (2019)**: "Fast Graph Representation Learning with PyTorch Geometric." *ICLR Workshop*. [PyTorch Geometric library]
 
 ---
 
