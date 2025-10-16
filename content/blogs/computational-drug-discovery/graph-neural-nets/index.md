@@ -75,7 +75,7 @@ Let's start by building molecular graphs from scratch.
 
 ### 2.1 The RDKit Foundation
 
-Before we can apply GNNs, we need to convert molecular representations (typically SMILES strings) into graph objects. The chemistry library **RDKit** is the industry standard for this task.
+Before we can apply GNNs, we need to convert molecular representations (typically SMILES strings) into graph objects. The chemistry library **RDKit** [^5] is the industry standard for this task.
 
 #### Installing Dependencies
 
@@ -503,7 +503,7 @@ Batch vector: tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
 #### Understanding the PyTorch Geometric DataLoader for Molecules Used in the Above Code Block
 
-When working with deep learning on graph data, like molecular structures, we can't simply stack graphs into a standard tensor like we do with images. Each molecule is a different size! This is where the **PyTorch Geometric (PyG) `DataLoader`** comes in.
+When working with deep learning on graph data, like molecular structures, we can't simply stack graphs into a standard tensor like we do with images. Each molecule is a different size! This is where the **PyTorch Geometric (PyG) `DataLoader`** comes in. [^6]
 
 It doesn't just batch graphs; it intelligently *combines* them into one large, single graph object, which is a powerful and efficient way to process molecular data.
 
@@ -564,7 +564,7 @@ Now that we have molecular graphs, let's build neural networks that can process 
 
 ### 3.1 The Message Passing Framework
 
-All GNNs follow a common pattern called **message passing**:
+All GNNs follow a common pattern called **message passing**[^1]:
 
 1. **Message generation**: Each neighbor sends information
 2. **Aggregation**: Collect messages from all neighbors
@@ -590,7 +590,7 @@ Where:
 
 ### 3.2 Graph Convolutional Networks (GCN)
 
-GCN is the simplest and most widely-used architecture. The update rule is:
+GCN is the simplest and most widely-used architecture[^2]. The update rule is:
 
 $$
 \mathbf{h}_v^{(k)} = \sigma\left(\mathbf{W}^{(k)} \sum_{u \in \mathcal{N}(v) \cup \{v\}} \frac{\mathbf{h}_u^{(k-1)}}{\sqrt{|\mathcal{N}(v)| \cdot |\mathcal{N}(u)|}}\right)
@@ -845,7 +845,9 @@ The final node feature matrix (from $\text{conv3}$) is then passed to the **Glob
 
 ### 3.3 Graph Attention Networks (GAT)
 
-The GAT architecture solves the "all-bonds-are-equal" problem inherent in GCN by introducing a mechanism that allows the model to **selectively focus on the most important neighbors** (bonds).
+The GAT architecture solves the "all-bonds-are-equal" problem inherent in GCN by introducing a mechanism that allows the model to **selectively focus on the most important neighbors** (bonds). [^3]
+
+![GAT](cover.png)
 
 #### The Intuition
 
@@ -1748,26 +1750,17 @@ The combination of AlphaFold (protein structures), GNNs (molecular property pred
 
 GNNs building on the same principles of iterative geometric reasoning that powered AlphaFold are at the center of this revolution.
 
+
 ---
 
 ## References
 
-1. **Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., & Dahl, G. E. (2017, July)**. Neural message passing for quantum chemistry. In International conference on machine learning (pp. 1263-1272). Pmlr.
+[^1]: Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., & Dahl, G. E. (2017, July). Neural message passing for quantum chemistry. In International conference on machine learning (pp. 1263-1272). Pmlr.
 
-2. **Kipf, T. N. (2016)**. Semi-supervised classification with graph convolutional networks. arXiv preprint arXiv:1609.02907.
+[^2]: Kipf, T. N. (2016). Semi-supervised classification with graph convolutional networks. arXiv preprint arXiv:1609.02907.
 
-3. **Veličković, P., Cucurull, G., Casanova, A., Romero, A., Lio, P., & Bengio, Y. (2017)**. Graph attention networks. arXiv preprint arXiv:1710.10903.
+[^3]: Veličković, P., Cucurull, G., Casanova, A., Romero, A., Lio, P., & Bengio, Y. (2017). Graph attention networks. arXiv preprint arXiv:1710.10903.
 
-4. **Xiong, Z., Wang, D., Liu, X., Zhong, F., Wan, X., Li, X., ... & Zheng, M. (2019)**. Pushing the boundaries of molecular representation for drug discovery with the graph attention mechanism. Journal of medicinal chemistry, 63(16), 8749-8760.
+[^5]: Landrum, G.: RDKit: Open-source cheminformatics. [http://www.rdkit.org](http://www.rdkit.org)
 
-5. **Landrum, G.**: RDKit: Open-source cheminformatics. [http://www.rdkit.org](http://www.rdkit.org)
-
-6. **Fey, M., & Lenssen, J. E. (2019)**. Fast graph representation learning with PyTorch Geometric. arXiv preprint arXiv:1903.02428.
-
----
-
-*This blog is part of the Computational Drug Discovery series.*
-
-**Next:** Blog 5 - Generative Models for De Novo Drug Design
-
-**Previous:** Blog 3 - AlphaFold and the Protein Structure Prediction Revolution
+[^6]: Fey, M., & Lenssen, J. E. (2019). Fast graph representation learning with PyTorch Geometric. arXiv preprint arXiv:1903.02428.
