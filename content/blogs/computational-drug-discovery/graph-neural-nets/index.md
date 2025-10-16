@@ -782,18 +782,18 @@ Predicted probability: 0.5044
 
 ***
 
-### Understanding GCN Convolution Mechanics
+#### Understanding GCN Convolution Mechanics
 
 The $\text{GCNConv}$ layers (e.g., `self.conv1`) are the core of the model. They process the entire batch of molecules as one large graph in a single, efficient step according to the GCN formula: $$\mathbf{H}^{(k)} = \sigma\left(\mathbf{\hat{A}} \mathbf{H}^{(k-1)} \mathbf{W}^{(k)}\right)$$
 
-### Input Data Tensors
+##### Input Data Tensors
 
 The $\text{GCNConv}$ layer receives the two essential tensors defining the graph:
 
 1.  **Node Features ($\mathbf{x}$):** A $3 \times 36$ tensor containing the features for the **3 heavy atoms** (C, C, O) of Ethanol. This is the starting feature matrix $\mathbf{H}^{(0)}$.
 2.  **Edge Index ($\mathbf{edge\_index}$):** A $2 \times 4$ tensor defining the bonds (e.g., `[0, 1]` means atom 0 is connected to atom 1). This tensor represents the **graph structure** and is used to define neighborhood relationships.
 
-### The $\text{GCNConv}$ Mechanism (Message Passing)
+##### The $\text{GCNConv}$ Mechanism (Message Passing)
 
 The convolution process occurs in two simultaneous mathematical operations:
 
@@ -807,7 +807,7 @@ The result is a new feature matrix $\mathbf{x}$ (now $3 \times 64$) where each a
 
 ***
 
-## Detail: The Normalized Adjacency Matrix ($\mathbf{\hat{A}}$)
+**Detail: The Normalized Adjacency Matrix ($\mathbf{\hat{A}}$)**
 
 The term $\mathbf{\hat{A}}$ is the **Normalized Adjacency Matrix**—the central element that adapts convolution to graphs. It's pre-calculated to perform the normalized averaging of neighbor features in a single matrix multiplication. It is defined as:
 
@@ -815,7 +815,7 @@ $$\mathbf{\hat{A}} = \mathbf{\tilde{D}}^{-\frac{1}{2}} \mathbf{\tilde{A}} \mathb
 
 The use of $\mathbf{\tilde{D}}^{-\frac{1}{2}}$ on **both the left and right** ensures the **symmetry of the normalization**, leading to stable training.
 
-### Calculation Breakdown for Ethanol (CCO)
+**Calculation Breakdown for Ethanol (CCO)**
 
 The calculation converts the simple bond list into the precise aggregation weights:
 
@@ -837,23 +837,23 @@ The values in this matrix define the exact weight applied to each neighbor's fea
 
 ***
 
-### Final Step: Global Pooling
+**Final Step: Global Pooling**
 
 The final node feature matrix (from $\text{conv3}$) is then passed to the **Global Mean Pooling** layer. This layer uses the `data.batch` tensor to **average** the feature vectors of all atoms, condensing the entire graph's information into a single $1 \times 64$ vector for the final $\text{MLP}$ head.
 ***
 ***
 
-## 3.3 Graph Attention Networks (GAT)
+### 3.3 Graph Attention Networks (GAT)
 
 The GAT architecture solves the "all-bonds-are-equal" problem inherent in GCN by introducing a mechanism that allows the model to **selectively focus on the most important neighbors** (bonds).
 
-### The Intuition
+#### The Intuition
 
 Think of attention weights as importance scores. In a molecule, a carbon atom bonded to an oxygen (electronegative) and three hydrogens should pay more attention to the oxygen when updating its representation, because that oxygen dominates the atom's chemical behavior. GAT learns these importance scores automatically from data.
 
 ---
 
-### Solution: Learning Attention Weights ($\alpha_{vu}$)
+#### Solution: Learning Attention Weights ($\alpha_{vu}$)
 
 GATs learn **attention weights** $\alpha_{vu}$ that determine how much each neighbor $u$ contributes to updating the central node $v$.
 
@@ -864,7 +864,7 @@ where $u \in \mathcal{N}(v)$ includes the node $v$ itself (self-attention), allo
 
 ---
 
-#### Stage 1: Computing the Raw Attention Score ($e_{vu}$)
+##### Stage 1: Computing the Raw Attention Score ($e_{vu}$)
 
 The score $e_{vu}$ measures the relevance between $v$ and $u$.
 
@@ -890,7 +890,7 @@ where $||$ denotes **concatenation** (stacking vectors end-to-end).
 
 ---
 
-#### Stage 2: Normalization (Softmax)
+##### Stage 2: Normalization (Softmax)
 
 The final attention coefficient $\alpha_{vu}$ is obtained by applying $\text{Softmax}$ to normalize the raw scores across all neighbors:
 
@@ -902,7 +902,7 @@ This ensures that all attention weights for node $v$ sum to 1, creating a probab
 
 ---
 
-### Multi-Head Attention
+##### Multi-Head Attention
 
 To achieve robustness and capture diverse patterns, GAT employs **multi-head attention**. Each head $i$ has its own independent weight matrix $\mathbf{W}^{(i)}$ and attention vector $\mathbf{a}^{(i)}$ to learn different aspects of neighbor importance.
 
@@ -918,7 +918,7 @@ where $\Vert$ denotes concatenation across the $K$ heads.
 
 ---
 
-### The Nature of GAT Attention
+#### The Nature of GAT Attention
 
 GAT uses a **local, additive attention** mechanism, which is fundamentally simpler than the **global, multiplicative attention (QKV)** used in Transformers:
 
@@ -931,7 +931,7 @@ Despite the simpler calculation mechanism, both models use **multi-head attentio
 
 ---
 
-### Interpretability for Drug Discovery
+#### Interpretability for Drug Discovery
 
 After training, the learned attention weights $\alpha_{vu}$ provide valuable insights into molecular structure-activity relationships. Examining these weights reveals which bonds the model considers most important for predicting a property.
 
@@ -1099,29 +1099,15 @@ Edge 1 -> 3: [0.50171024 0.51037735 0.5290461  0.47196847]
 Predicted logit: 0.0170
 ```
 
-
-## Key Differences from GCN (as Implemented in MoleculeGAT)
-
-The Graph Attention Network (GAT) fundamentally differs from GCN by replacing fixed, degree-based weighting with **learnable, data-driven attention weights**, leading to higher expressiveness and interpretability.
-
-| Feature | GCN ($\text{GCNConv}$) | GAT ($\text{GATConv}$) | **Key Difference** |
-| :--- | :--- | :--- | :--- |
-| **Weighting Method** | **Fixed** (Inverse of degree normalization $\mathbf{\hat{A}}$) | **Learned** ($\alpha_{vu}$) | GAT learns **importance scores** based on neighbor features. |
-| **Edge Features** | **Ignored** | **Integrated** (`edge_attrs=edge_attrs`) | GAT can use **bond information** to modulate attention scores. |
-| **Multi-Head** | Not Applicable | **Standard Feature** (`heads=4`) | Allows the model to capture **diverse chemical patterns** simultaneously. |
-| **Parameter Count** | Low (~13k) | High (~146k) | GAT requires **more weights** to learn multiple attention heads and the attention vector $\mathbf{a}$. |
-
-
-
 ***
 
 ***
 
-## 3.4 Message Passing Neural Networks (MPNN)
+### 3.4 Message Passing Neural Networks (MPNN)
 
 The **Message Passing Neural Network (MPNN)** is a general framework that describes how many $\text{GNNs}$ work, providing a unified view of the process. While $\text{GCN}$ and $\text{GAT}$ can *optionally* incorporate edge features, $\text{MPNN}$ makes the **edge-conditioned message passing** explicit and central to its design.
 
-### The MPNN Framework
+#### The MPNN Framework
 
 The framework consists of two phases, representing one iteration of a typical $\text{GNN}$ layer:
 
@@ -1302,7 +1288,7 @@ Sample predictions:
 
 ---
 
-### Implementation: NNConv (Neural Network Convolution)
+#### Implementation: NNConv (Neural Network Convolution)
 
 **NNConv** is a highly effective $\text{MPNN}$ variant that achieves strong edge conditioning by having edge features generate **edge-specific transformation matrices**.
 
@@ -1325,18 +1311,19 @@ The complexity of $\text{NNConv}$ is in ensuring the edge network outputs the co
 * In the provided code, `edge_network2` is designed to produce $4096$ values, reflecting this requirement.
 
 ---
-## 3.5 Architecture Comparison: GCN, GAT, and MPNN
+### 3.5 Architecture Comparison: GCN, GAT, and MPNN
 
 | Architecture | Edge Features Use | Key Mechanism | How Edge Features Are Used | Strengths | Best For |
 |:-------------|:------------------|:--------------|:---------------------------|:----------|:---------|
-| **GCN** | Optional (concatenation) | **Uniform** aggregation ($\mathbf{\hat{A}}$) | Concatenated to node features: $[\mathbf{h}_v \,||\, \mathbf{h}_u \,||\, \mathbf{f}_{vu}]$; same aggregation for all edge types | Fast, simple, interpretable baseline | Topology-driven tasks; baseline comparisons |
-| **GAT/GATv2** | **Integrated in attention** | **Learned attention weights** ($\alpha_{vu}$) | Modulate attention scores: $e_{vu} = \text{LeakyReLU}(\mathbf{a}^T [\mathbf{W}\mathbf{h}_v \,||\, \mathbf{W}\mathbf{h}_u \,||\, \mathbf{f}_{vu}])$; different bonds get different attention but same transformation $\mathbf{W}$ | Adaptively weights neighbors; interpretable attention; moderate edge utilization | When neighbor importance varies; interpretability needed |
+| **GCN** | Optional (concatenation) | **Uniform** aggregation ($\mathbf{\hat{A}}$) | Concatenated to node features: $[\mathbf{h}_v, \mathbf{h}_u, \mathbf{f}_{vu}]$; same aggregation for all edge types | Fast, simple, interpretable baseline | Topology-driven tasks; baseline comparisons |
+| **GAT/GATv2** | **Integrated in attention** | **Learned attention weights** ($\alpha_{vu}$) | Modulate attention scores: $e_{vu} = \text{LeakyReLU}(\mathbf{a}^T [\mathbf{W}\mathbf{h}_v, \mathbf{W}\mathbf{h}_u, \mathbf{f}_{vu}])$; different bonds get different attention but same transformation $\mathbf{W}$ | Adaptively weights neighbors; interpretable attention; moderate edge utilization | When neighbor importance varies; interpretability needed |
 | **MPNN (NNConv)** | **Generates weight matrices** | **Edge-conditioned transformations** | Generate unique matrices per bond: $\mathbf{W}_{uv} = \text{EdgeNetwork}(\mathbf{f}_{uv})$; single vs. double bonds produce different transformations | Strongest edge differentiation; explicit bond-type modeling | Bond-critical tasks (reactions, stereochemistry, conjugation) |
+
 
 **Key Distinction:** GCN concatenates edge features, GAT uses them to weight neighbor importance, MPNN uses them to generate bond-specific transformation matrices.
 
 
-***
+---
 
 ### 3.6 Pooling Strategies
 
