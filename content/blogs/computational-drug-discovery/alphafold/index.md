@@ -13,6 +13,13 @@ cover:
   image_alt: "alphafold overview"
 ---
 
+| Characteristic | Detail |
+| :--- | :--- |
+| **Estimated Reading Time** | 45-60 minutes |
+| **Technical Level** | Advanced (requires understanding of deep learning, basic chemistry) |
+| **Prerequisites** | [Blogs 1 and 2](../) in this series required |
+
+
 ## 1. Introduction
 
 ### The 50-Year Major Problem

@@ -13,6 +13,14 @@ cover:
   image_alt: "Graph Neural Network Molecular Representation"
 ---
 
+
+| Characteristic | Detail |
+| :--- | :--- |
+| **Estimated Reading Time** | 45-60 minutes |
+| **Technical Level** | Advanced (requires understanding of deep learning, basic chemistry) |
+| **Prerequisites** | [Blogs 1 and 2](../) in this series required |
+
+
 ## 1. Introduction: From Protein Structures to Small Molecules
 
 ### Recap: The Drug Discovery Pipeline So Far

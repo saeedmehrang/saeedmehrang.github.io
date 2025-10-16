@@ -15,6 +15,13 @@ cover:
   image_alt: "molecule sketch"
 ---
 
+| Characteristic | Detail |
+| :--- | :--- |
+| **Estimated Reading Time** | 45-50 minutes |
+| **Technical Level** | Basic (requires understanding of vectors and matrices plus basic chemistry) |
+| **Prerequisites** | [Blog 1](../) in this series required |
+
+
 ## Introduction
 
 In [Blog 1](/blogs/computational-drug-discovery/basic-molecular-biology/), we learned that proteins are chains of amino acids that fold into precise 3D shapes, and drugs are small molecules with specific functional groups that bind to protein pockets. We explored how structure determines function and why finding the right drug molecule is extraordinarily challenging.

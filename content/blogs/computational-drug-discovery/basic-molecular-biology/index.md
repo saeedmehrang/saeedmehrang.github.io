@@ -15,6 +15,14 @@ showToc: true
 disableAnchoredHeadings: false
 ---
 
+
+| Characteristic | Detail |
+| :--- | :--- |
+| **Estimated Reading Time** | 20-45 minutes |
+| **Technical Level** | None |
+| **Prerequisites** | None |
+
+
 ## Introduction
 
 Drug discovery is one of humanity's most ambitious scientific endeavors. The journey from identifying a disease target to getting a medication on pharmacy shelves takes an average of 10-15 years and costs upwards of $2.6 billion[^1]. Despite these massive investments, approximately 90% of drug candidates fail during clinical trials. This staggering failure rate isn't due to lack of effort—it's because drug discovery is an extraordinarily complex computational and biological problem.
