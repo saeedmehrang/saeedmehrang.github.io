@@ -10,7 +10,7 @@ showToc: true
 disableAnchoredHeadings: false
 cover:
   image: "cover.png"
-  image_alt: "Graph Neural Network molecular representation"
+  image_alt: "Graph Neural Network Molecular Representation"
 ---
 
 ## 1. Introduction: From Protein Structures to Small Molecules
@@ -1765,18 +1765,17 @@ GNNs building on the same principles of iterative geometric reasoning that power
 
 ## References
 
-1. **Gilmer, J. et al. (2017)**: "Neural Message Passing for Quantum Chemistry." *ICML*. [Foundational MPNN paper]
+1. **Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., & Dahl, G. E. (2017, July)**. Neural message passing for quantum chemistry. In International conference on machine learning (pp. 1263-1272). Pmlr.
 
-2. **Kipf, T. N. & Welling, M. (2017)**: "Semi-Supervised Classification with Graph Convolutional Networks." *ICLR*. [GCN paper]
+2. **Kipf, T. N. (2016)**. Semi-supervised classification with graph convolutional networks. arXiv preprint arXiv:1609.02907.
 
-3. **Veličković, P. et al. (2018)**: "Graph Attention Networks." *ICLR*. [GAT paper]
+3. **Veličković, P., Cucurull, G., Casanova, A., Romero, A., Lio, P., & Bengio, Y. (2017)**. Graph attention networks. arXiv preprint arXiv:1710.10903.
 
-4. **Xiong, Z. et al. (2020)**: "Pushing the Boundaries of Molecular Representation for Drug Discovery with the Graph Attention Mechanism." *Journal of Medicinal Chemistry*. [AttentiveFP for drug discovery]
-
+4. **Xiong, Z., Wang, D., Liu, X., Zhong, F., Wan, X., Li, X., ... & Zheng, M. (2019)**. Pushing the boundaries of molecular representation for drug discovery with the graph attention mechanism. Journal of medicinal chemistry, 63(16), 8749-8760.
 
 5. **Landrum, G.**: RDKit: Open-source cheminformatics. [http://www.rdkit.org](http://www.rdkit.org)
 
-6. **Fey, M. & Lenssen, J. E. (2019)**: "Fast Graph Representation Learning with PyTorch Geometric." *ICLR Workshop*. [PyTorch Geometric library]
+6. **Fey, M., & Lenssen, J. E. (2019)**. Fast graph representation learning with PyTorch Geometric. arXiv preprint arXiv:1903.02428.
 
 ---
 
