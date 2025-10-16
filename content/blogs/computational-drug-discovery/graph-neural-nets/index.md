@@ -1,6 +1,6 @@
 ---
 title: "Computational Drug Discovery Part 4: Graph Neural Networks for Molecular Property Prediction"
-date: 2025-10-14
+date: 2025-10-15
 draft: false
 summary: "A technical deep-dive into Graph Neural Networks (GNNs) for predicting molecular properties. Learn how to construct molecular graphs, implement message passing architectures, and apply attention mechanisms to drug discovery tasks."
 tags: ["Computational Drug Discovery", "Graph Neural Networks", "GNN", "Deep Learning", "PyTorch Geometric", "Molecular Graphs", "Machine Learning"]
