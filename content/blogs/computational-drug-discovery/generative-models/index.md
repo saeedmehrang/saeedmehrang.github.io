@@ -92,7 +92,9 @@ This blog explores the fundamentals of cutting-edge generative models revolution
 5. **Conditional Generation (briefly)**: Steering generation toward molecules with desired properties
 6. **Multi-Objective Optimization (briefly)**: Balancing competing objectives in practical drug design
 
-By the end, you'll understand how AI doesn't just evaluate molecules it creates them.
+By the end, you'll understand how AI doesn't just evaluate molecules it creates them. See the image below for an overview of the process (image adopted from [^1]).
+
+!["Overview"](cover.png)
 
 ---
 
@@ -188,14 +190,14 @@ class MolecularVAE(nn.Module):
     def __init__(self, vocab_size, latent_dim=512):
         super().__init__()
 
-        # Encoder: SMILES/Graph � �, ò
+        # Encoder: SMILES/Graph -> z
         self.encoder = GNNEncoder(
             num_features=128,
             hidden_dim=256,
             latent_dim=latent_dim
         )
 
-        # Decoder: z � SMILES
+        # Decoder: z -> SMILES
         self.decoder = SMILESDecoder(
             latent_dim=latent_dim,
             vocab_size=vocab_size,
@@ -208,7 +210,7 @@ class MolecularVAE(nn.Module):
         return mu, logvar
 
     def reparameterize(self, mu, logvar):
-        """Reparameterization trick: z = � + � � �"""
+        """Reparameterization trick: z = mu + epsilon * sigma"""
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
@@ -218,7 +220,7 @@ class MolecularVAE(nn.Module):
         return self.decoder(z)
 
     def forward(self, molecule):
-        """Full forward pass: encode � reparameterize � decode"""
+        """Full forward pass: encode -> reparameterize -> decode"""
         mu, logvar = self.encode(molecule)
         z = self.reparameterize(mu, logvar)
         recon_molecule = self.decode(z)
@@ -229,11 +231,13 @@ class MolecularVAE(nn.Module):
         # Reconstruction loss
         recon_loss = F.cross_entropy(recon_x, x, reduction='sum')
 
-        # KL divergence: -0.5 * sum(1 + log(ò) - �� - ò)
+        # KL divergence: -0.5 * sum(1 + logvar - mu^2 - exp(logvar))
         kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
         return recon_loss + beta * kl_loss
 ```
+
+⚠️⚠️⚠️ I am working on a simple implementation of JT-VAE and will link the code here once completed. Though, that will be a couple of hundreds of lines at least and out of the scope of this blog. Anyway, Stay Tuned If Interested 🙂! ⚠️⚠️⚠️
 
 ### 2.4 Latent Space Optimization
 
@@ -264,47 +268,12 @@ for alpha in np.linspace(0, 1, 20):
 
 This creates a smooth path through chemical space from drug A to drug B, potentially discovering interesting intermediate molecules.
 
-#### 2. Property-Guided Optimization
+#### 2. Property-Guided Molecular Design
 
-The real power: **optimize the latent vector directly to maximize desired properties**.
+The real power of the Molecular VAE lies in using **gradient descent directly on the continuous latent vector $\mathbf{z}$** to design new molecules. This is typically done through **Constrained Optimization** where we seek to **maximize a primary objective (e.g., binding affinity)** while ensuring **other properties (e.g., LogP, Molecular Weight) remain within acceptable, constrained bounds.** If you only care about one property, the process simplifies to simple maximization.
 
-```python
-# Start with an initial molecule
-z = vae.encode(initial_molecule)
-z.requires_grad = True  # Enable gradient tracking
 
-optimizer = torch.optim.Adam([z], lr=0.01)
-
-for step in range(100):
-    # Decode to molecule
-    molecule = vae.decode(z)
-
-    # Predict property using GNN from Blog 4
-    property_value = property_predictor(molecule)
-
-    # Loss: maximize property (minimize negative)
-    loss = -property_value
-
-    # Backpropagate and update latent vector
-    loss.backward()
-    optimizer.step()
-    optimizer.zero_grad()
-
-    print(f"Step {step}: Property = {property_value.item()}")
-
-# Final optimized molecule
-optimized_molecule = vae.decode(z)
-```
-
-**Why this works:**
-- The latent space is continuous and differentiable
-- We can compute gradients of properties with respect to z
-- Gradient descent finds molecules with better properties
-- The VAE decoder ensures outputs remain chemically valid
-
-#### 3. Constrained Optimization
-
-Optimize for one property while constraining others:
+For example, optimize for one property while constraining others:
 
 ```python
 def constrained_optimization(vae, initial_molecule, target_property,
@@ -314,8 +283,14 @@ def constrained_optimization(vae, initial_molecule, target_property,
     optimizer = torch.optim.Adam([z], lr=0.01)
 
     for step in range(steps):
-        molecule = vae.decode(z)
-        properties = property_predictor(molecule)
+        # Differentiably decode the latent vector (Conceptual Step)
+        # NOTE: This line implicitly assumes a differentiable path 
+        # (e.g., Gumbel-Softmax) to a structure or property value.
+        molecule_representation = vae.decode_to_property_input(z) 
+
+        # Predict property using GNN from Blog 4
+        # The property_predictor operates on the differentiable representation
+        properties = property_predictor(molecule_representation)
 
         # Objective: maximize target property
         objective = -properties[target_property]
@@ -350,19 +325,19 @@ optimized = constrained_optimization(
 Despite their utility, VAEs have several important limitations:
 
 | Limitation | Description | Impact |
-|------------|-------------|--------|
-| **Posterior collapse** | Decoder ignores latent code, relies only on its own previous outputs | Latent space becomes uninformative; optimization fails |
-| **Reconstruction quality** | Gaussian assumptions lead to "blurry" averaged outputs | Generated molecules may lack sharp, realistic features |
-| **Limited expressiveness** | Single Gaussian latent assumption too restrictive for complex molecular distributions | Can't capture multi-modal distributions well |
-| **Training instability** | Balancing � parameter (reconstruction vs KL divergence) is tricky | Requires careful hyperparameter tuning |
-| **Mode coverage** | May not capture full diversity of training distribution | Missing out on some regions of chemical space |
+| :--- | :--- | :--- |
+| **Posterior collapse** | The decoder learns to ignore the latent code ($\mathbf{z}$), relying only on its previous outputs. | The latent space becomes uninformative; optimization and sampling from $\mathbf{z}$ fail to control molecule generation. |
+| **Reconstruction quality** | VAEs struggle to model discrete data perfectly, leading to a higher token error rate. | Generated molecules often require post-processing to ensure chemical validity (e.g., correcting invalid SMILES strings). Though JT-VAE fixes this. |
+| **Limited expressiveness** | The assumption of a single Gaussian latent space is too restrictive for complex, multi-modal molecular distributions. | The VAE struggles to capture distinct chemical classes or scaffolds effectively. JT-VAE mitigates this one. |
+| **Training instability** | Balancing the $\beta$ parameter (reconstruction vs KL divergence) is a tricky and crucial hyperparameter tuning step. | Suboptimal balancing can lead to either posterior collapse or poor reconstruction. |
+| **Mode coverage** | The VAE may only capture high-density regions, failing to represent the full diversity of the training distribution. | The model misses out on exploring novel or sparse regions of chemical space. |
 
 **When to use VAEs:**
-- You need interpretable, continuous latent spaces
-- You want to do gradient-based optimization
-- You're working with smaller datasets (1M-10M molecules)
-- Training stability is a priority
-- You need smooth interpolation between molecules
+- You need **interpretable, continuous latent spaces** for analysis.
+- You want to perform **gradient-based optimization** on molecular properties.
+- You're working with **smaller datasets** (where very large models are impractical).
+- **Smooth interpolation** between known molecules is a desired feature.
+- **Training stability** is a priority (compared to GANs).
 
 ---
 
@@ -2136,9 +2111,23 @@ Docking (Blog 6: Binding validation)
 Complete AI-driven drug discovery pipeline
 ```
 
+
+
+### Resources and Tools
+
+- **RDKit**: Open-source cheminformatics library (rdkit.org)
+- **PyTorch Geometric**: Graph neural network library
+- **HuggingFace Chemistry Models**: Pre-trained molecular transformers
+- **DiffDock**: Open-source docking with diffusion models
+- **ChemBERTa**: Pre-trained transformer for molecular property prediction
+
+
 ---
 
 ## References
+
+[^1]: Pang, C., Qiao, J., Zeng, X., Zou, Q., & Wei, L. (2023). Deep generative models in de novo drug molecule generation. Journal of Chemical Information and Modeling, 64(7), 2174-2194.
+
 
 1. **G�mez-Bombarelli et al. (2018)**
    "Automatic Chemical Design Using a Data-Driven Continuous Representation of Molecules"
@@ -2197,12 +2186,3 @@ Complete AI-driven drug discovery pipeline
 12. **M�ndez-Lucio et al. (2020)**
     "De Novo Drug Design with Deep Generative Models: An Empirical Study"
     *Journal of Chemical Information and Modeling*
-
-### Resources and Tools
-
-- **RDKit**: Open-source cheminformatics library (rdkit.org)
-- **PyTorch Geometric**: Graph neural network library
-- **HuggingFace Chemistry Models**: Pre-trained molecular transformers
-- **DiffDock**: Open-source docking with diffusion models
-- **ChemBERTa**: Pre-trained transformer for molecular property prediction
-
