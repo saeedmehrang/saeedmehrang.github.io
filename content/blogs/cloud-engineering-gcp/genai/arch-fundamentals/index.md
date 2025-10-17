@@ -34,7 +34,7 @@ disableAnchoredHeadings: false
                           ▲
 ┌─────────────────────────────────────────────────────────┐
 │  4. ORCHESTRATION & PROCESSING                          │
-│  Vertex AI Pipelines | Cloud Functions | Pub/Sub        │
+│  Vertex AI Pipelines | Cloud Functions/Run | Pub/Sub    │
 └─────────────────────────────────────────────────────────┘
                           ▲
 ┌─────────────────────────────────────────────────────────┐
@@ -348,6 +348,7 @@ Most production architectures prioritize inference flow since it directly impact
 - Document preprocessing on upload
 - Webhook handlers
 - Scheduled tasks (with Cloud Scheduler)
+- Fastapi for building APIs
 
 #### Pub/Sub
 **Purpose:** Asynchronous messaging between services
