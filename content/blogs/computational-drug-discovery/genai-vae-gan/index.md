@@ -10,7 +10,7 @@ series: ["Computational Drug Discovery"]
 showToc: true
 disableAnchoredHeadings: false
 cover:
-  image: "cover.png"
+  image: "overview.png"
   image_alt: "Generative molecular design"
 ---
 
@@ -94,9 +94,9 @@ This blog (Part 1/3) introduces the foundational generative models for molecular
 
 **Coming in Part 3/3**: Transformer-based generators for autoregressive SMILES generation (MolGPT, ChemFormer)
 
-By the end, you'll understand how AI doesn't just evaluate molecules—it creates them. See the image below for an overview of the process (image adopted from [^1]).
+By the end, you'll understand how AI doesn't just evaluate molecules—it creates them. See the image below for an overview of the molecule generation process (image adopted from [^1]).
 
-!["Overview"](cover.png)
+!["Overview"](overview.png)
 
 ---
 
@@ -178,6 +178,13 @@ The breakthrough came from **Junction Tree VAE (JT-VAE)** [^3], which generates 
 2.  Build vocabulary of common valid fragments.
 3.  Encoder: Molecule **$\rightarrow$** Junction tree **$\rightarrow$** Latent vector
 4.  Decoder: Latent vector **$\rightarrow$** Junction tree **$\rightarrow$** Assembled molecule
+
+
+Image below adopted from the original article [^3] shows how JT-VAE process happens from a high level overview.
+
+
+{{< framed_image src="jtvae.png" alt="JT-VAE" width="400px" height="600px" >}}
+{{< /framed_image >}}
 
 #### Code Structure
 
@@ -381,7 +388,14 @@ $$\min_G \max_D V(D, G) = \mathbb{E}_x[\log D(x)] + \mathbb{E}_z[\log(1 - D(G(z)
 
 The successful molecular GAN architecture directly generates molecular graphs [^4].
 
-**Generator Architecture:**
+See the image below for an overview of the MolGAN architecture (image adopted from the original article [^4]).
+
+{{< framed_image src="molgan.png" alt="MolGAN" width="500px" height="550px" >}}
+{{< /framed_image >}}
+
+
+
+**Generator Model Architecture:**
 
 ```python
 class MolecularGenerator(nn.Module):
