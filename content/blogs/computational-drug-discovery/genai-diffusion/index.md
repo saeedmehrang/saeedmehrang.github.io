@@ -200,7 +200,7 @@ Sampling is the execution of the learned reverse process, beginning with pure no
 
 ***
 
-## Note: The Role of Sampling Noise (DDPM vs. DDIM) in Step 3 of Sampling
+### Note: The Role of Sampling Noise (DDPM vs. DDIM) in Step 3 of Sampling
 
 The need to occasionally add random noise back during the denoising steps is one of the most confusing, yet crucial, parts of Diffusion Models. It boils down to whether the model is **probabilistic** or **deterministic**.
 
@@ -222,84 +222,173 @@ The sampling noise $\sigma_t \mathbf{z}$ is essential for DDPM to express the fu
 * **It Ensures Diversity:** By adding the $\sigma_t \mathbf{z}$ noise back (the **DDPM** approach), we introduce a small, unique, random "jitter" at every step. This jitter compounds over the hundreds of steps, ensuring that even if you start with the exact same initial pure noise $\mathbf{x}_T$, you will generate a **different, unique, and diverse** final result $\mathbf{x}_0$. The noise is not canceling the denoising; it is the **key mechanism** for exploring the full learned diversity.
 
 
+***
+
+## 4. Diffusion Models for 3D Molecule Generation: The Landscape
+
+The field of 3D molecular diffusion is rapidly evolving beyond initial models. The choice of model depends on the task: generating **conformations** (3D shape for a known molecule) or generating **full, novel molecules** (graph structure + 3D coordinates).
+
+Here is a summary of the leading approaches, their purposes, and trade-offs.
+
+| Model | Purpose | Novelty/Limitation | Implementation Complexity |
+| :--- | :--- | :--- | :--- |
+| **GeoDiff** | **Conformer Generation** | Diffuses all $3N$ coordinates (full Euclidean space). **Limitation:** Struggles to maintain perfect bond lengths/angles. | High (Requires SE(3)-Equivariant GNNs) |
+| **Torsional Diffusion** | **Conformer Generation** | Diffuses only $\approx M$ torsion angles (torus space). **Novelty:** Inherently respects rigid chemistry; extremely fast. | Medium (Requires specialized periodic diffusion) |
+| **MUDiff** | **Full Molecule Generation** | Jointly generates **2D graph** and **3D coordinates**. **Novelty:** Unifies discrete (graph) and continuous (coordinates) diffusion. | Very High (Requires two coupled diffusion processes) |
+| **GeoLDM** | **Full Molecule Generation** | Generates both graph and coordinates in a **low-dimensional latent space**. **Novelty:** Faster sampling, better scalability via latent compression. | Very High (Requires training a geometric autoencoder + latent DM) |
+| **GCDM** | **Full Molecule Generation** | Generates graph and coordinates; focuses on local geometric fidelity. **Novelty:** Uses a **Geometry-Complete GNN** for highly accurate local bond geometry. | High (Requires advanced equivariant GNN architecture) |
+
 ---
 
-## 4. 3D Molecular Diffusion: From Theory to Implementation
+### 4.1 GeoDiff: The Coordinate Baseline
 
-### 4.1 The 3D Challenge
+* **Purpose:** Generate diverse 3D **conformations** given a fixed molecular graph.
+* **Novelty:** Was one of the first to apply the DDPM framework with an **SE(3)-Equivariant GNN** to 3D coordinates, ensuring predictions are consistent regardless of molecular orientation.
+* **Limitation:** By diffusing all $3N$ coordinates, it forces the model to learn the rigid chemical rules (bond lengths, bond angles) from scratch, leading to a high proportion of generated structures with slight geometric inaccuracies.
+* **Application:** Conformer generation for small to medium-sized molecules.
 
-Generating valid 3D molecular structures requires respecting fundamental physical constraints:
-
-| Constraint | Description | Example |
-| :--- | :--- | :--- |
-| **Bond Lengths** | Fixed distances between bonded atoms | C-C: 1.54Å, C=C: 1.34Å |
-| **Bond Angles** | Angles between three connected atoms | Tetrahedral: 109.5°, Trigonal: 120° |
-| **Torsional Angles** | Rotations around single bonds | Define molecular conformation |
-| **SE(3) Equivariance** | Predictions must be invariant to rotation/translation | Model learns physics, not orientation |
-
-### 4.2 Two Approaches to 3D Diffusion
-
-**GeoDiff: Full Coordinate Diffusion**
-- Diffuses all 3D atomic coordinates directly
-- Uses SE(3)-equivariant GNN (e.g., EGNN) to predict noise
-- **Advantage**: Complete flexibility
-- **Disadvantage**: High-dimensional (3N dimensions for N atoms)
-
-**Torsional Diffusion: Smart Dimensionality Reduction**
-- Key insight: Bond lengths and angles are rigid; only torsions are flexible
-- Fix rigid geometry, diffuse only torsional angles
-- Reduces dimensionality from 3N to ~N/3
-
-| Aspect | GeoDiff (Full 3D) | Torsional Diffusion |
-|--------|-------------------|---------------------|
-| **Dimensions** | 3N (all coordinates) | ~N/3 (torsions only) |
-| **Sampling speed** | Baseline | 10-100x faster |
-| **Sample quality** | High | Higher (fewer dimensions) |
-| **Geometry respect** | Learned | Built-in (fixed bonds/angles) |
-
-**Why torsional diffusion wins:**
-- Dramatically fewer dimensions to optimize
-- Naturally respects chemical constraints
-- Faster sampling without quality loss
-- Focus learning on what actually varies (flexibility)
 ---
 
-### 4.3 Understanding Torsional Angles
+### 4.2 Torsional Diffusion: The Conformer Specialist
+
+* **Purpose:** Generate high-quality 3D **conformations** by exploiting molecular flexibility.
+* **Novelty:** Reduces the problem dimensionality by fixing all rigid components and diffusing **only the $\approx M$ rotatable torsion angles** over the specialized $\mathbb{T}^M$ (torus) space. This provides **10x to 1000x faster sampling** than GeoDiff (since Torsional Diffusion uses 5-20 steps vs GeoDiff's 5000 steps).
+* **Limitation:** Cannot generate novel molecular graphs.
+* **Application:** Rapid and accurate conformer generation for virtual screening and preparing training data.
+
+---
+
+### 4.3 Models for Full Molecule Generation (Addressing GeoDiff's Scope)
+
+Models like GeoDiff and Torsional Diffusion are limited to generating conformers for *known* molecules. The following models achieve **de novo molecule generation** by producing the graph structure (connectivity and atom types) and 3D coordinates simultaneously.
+
+#### A. MUDiff: Unified Discrete/Continuous Diffusion
+
+* **Purpose:** **De novo generation** of complete molecules (2D graph and 3D coordinates).
+* **Novelty:** It is a **unified diffusion model** that couples a **discrete diffusion process** (for bond and atom types) with a **continuous diffusion process** (for 3D coordinates). It uses a specialized Transformer to denoise both features concurrently, leveraging the synergy between topology and geometry.
+* **Limitation:** High implementation complexity due to managing two distinct, yet coupled, diffusion processes.
+* **Application:** Generates novel, stable 2D/3D molecules from a single latent space.
+
+#### B. GeoLDM: Geometric Latent Diffusion
+
+* **Purpose:** Scalable **de novo generation** of large 3D molecules.
+* **Novelty:** Inspired by Stable Diffusion, it uses a geometric **Autoencoder** to compress the high-dimensional molecule representation into a lower-dimensional latent space. Diffusion is performed efficiently in this latent space, significantly reducing training and sampling time compared to working directly in the $3N$ feature space.
+* **Limitation:** Requires training a complex two-stage model (Autoencoder + Diffusion Model), where the quality of the Autoencoder is critical.
+* **Application:** Fast, high-throughput generation of novel drug-like molecules.
+
+#### C. GCDM: Geometry-Complete Diffusion Model
+
+* **Purpose:** **De novo generation** with extreme geometric fidelity.
+* **Novelty:** While also a full molecule generator, its primary innovation is using a **Geometry-Complete GNN** (GCPNet) that explicitly encodes local geometric relationships (like inter-atomic distances and frames) into its message-passing. This is a direct attempt to resolve the issue of subtle bond/angle inaccuracies seen in earlier SE(3)-equivariant models.
+* **Limitation:** The advanced GNN architecture increases complexity and computational cost per step.
+* **Application:** Generating large, complex molecules where geometric and energetic stability are paramount.
+
+***
+
+
+## 5. Torsional Diffusion: A Simple Diffusion Model for Conformer Generation
+
+Torsional Diffusion is built on the crucial insight that for molecular structures, the majority of chemical information (bond types, bond lengths, bond angles) is **rigid and fixed**. Only the **torsional angles** allow for molecular flexibility. By restricting diffusion to this small, flexible set of degrees of freedom, the model achieves superior performance in **conformer generation**.
+
+Conformer generation, the process of accurately predicting the various low-energy three-dimensional shapes (conformations) a molecule can adopt, is an **indispensable capability** at the heart of modern drug discovery. Molecules are not rigid; they flex and twist, and their biological activity is directly governed by their shape. Since a drug molecule must physically fit into a specific pocket on a target protein (like a key fitting a lock), knowing the molecule's accessible 3D forms is critical. Generating diverse and high-quality conformers is the foundational first step for techniques such as **molecular docking** and **quantitative structure-activity relationship (QSAR) modeling**. Without a reliable set of conformers, the best drug candidate might be overlooked, as the computational screen would miss the active conformation required for binding.
+
+Torsional Diffusion, and other conformer generation models like GeoDiff, fundamentally require the **initial molecular formula and connectivity (the molecular graph)** to begin the generation process. These models are not chemists; they are computational tools designed to explore the 3D flexibility of a structure that has already been designed or discovered. The scientist must first supply the **SMILES string** or other chemical identifier that defines the atoms and bonds, effectively telling the model, "Here is the molecule; now find all its possible shapes." This dependency underscores the two-stage nature of *de novo* drug discovery: first, using models like MUDiff or VAEs to hypothesize a novel **2D molecular graph**, and second, using conformer-specific models like Torsional Diffusion to predict the crucial **3D geometry** necessary for biological interaction.
+
+In the modern age, the ability of models like Torsional Diffusion to rapidly generate vast libraries of chemically accurate conformers addresses major bottlenecks in high-throughput screening. This computational speed allows researchers to move beyond small, pre-calculated conformation libraries to generate conformations *on-the-fly* for millions of novel drug candidates. This accelerated process is vital for two key reasons: **virtual screening** and **pharmacophore modeling**. Virtual screening relies on docking every possible conformer into a target protein to predict binding strength; a fast, accurate conformer generator drastically improves the hit rate. Furthermore, drug design often involves defining a **pharmacophore**—the essential 3D arrangement of functional groups necessary for activity. Accurate conformer generation validates the existence of molecules that can satisfy this precise 3D arrangement, empowering structure-based drug design and significantly accelerating the path from initial lead compound to clinical trials.
+
+### 5.1 Understanding Molecular Flexibility (Torsional Angles)
 
 #### What is a Dihedral (Torsion) Angle?
 
-A **dihedral angle** $\phi$ describes the twist around a bond, defined by 4 atoms in sequence: A-B-C-D
-
-- **Plane 1**: Atoms A, B, C
-- **Plane 2**: Atoms B, C, D
-- **Rotation axis**: The B-C bond
-- **Dihedral angle**: Angle between the two planes (range: -180° to +180°)
-
-{{< framed_image src="dihedral_angle.png" alt="Torsion Angle" width="500px" height="300px" >}}
-Dihedral angle in HOOH. Image from Chemistry StackExchange, CC BY-SA 4.0.
-{{< /framed_image >}}
+A **dihedral angle** $\phi$ describes the twist around a bond, defined by 4 atoms in sequence: A-B-C-D.  The angle is the separation between **Plane 1** (defined by atoms A, B, C) and **Plane 2** (defined by atoms B, C, D), rotated around the central B-C bond (the **rotation axis**). The angle ranges from $-180^\circ$ to $+180^\circ$.
 
 #### Rules for Rotatable Bonds
 
-A bond is rotatable if it meets ALL criteria:
+A bond is rotatable only if its rotation does not violate the molecule's overall chemical structure.
 
 | Criterion | Reason |
 |-----------|--------|
-| ✅ Single bond | Double/triple bonds are rigid |
-| ✅ Not in ring | Ring bonds are constrained |
-| ✅ Not terminal | Need substituents on both sides |
-| ✅ Both atoms have degree ≥ 2 | Need 4 atoms (A-B-C-D) to define dihedral |
+| ✅ **Single bond** | Double/triple bonds are rigid (fixed angle). |
+| ✅ **Not in ring** | Ring bonds are geometrically constrained. |
+| ✅ **Not terminal** | Requires substituents on both sides (A-B-C-D) to define the four-atom sequence. |
+| ✅ **Both atoms have degree $\ge 2$** | Need 4 atoms (A-B-C-D) to define dihedral. |
 
-**Example: Ibuprofen (C₁₃H₁₈O₂)**
-- Benzene ring: 6 bonds → **NOT rotatable** (in ring)
-- C=O bond: 1 bond → **NOT rotatable** (double bond)
-- C-C chains: ~8 bonds → **ROTATABLE!**
+**Example: Ibuprofen ($\text{C}_{13}\text{H}_{18}\text{O}_2$)**
+The rigid structure includes the benzene ring and the carbonyl group ($\text{C}=\text{O}$). The flexible parts are the saturated C-C chains, which contain the **rotatable bonds** that the model will diffuse.
+
+***
+
+### 5.2 The Torsional Diffusion Process: $\mathbb{T}^M$
+
+#### A. Core Function: Conformer Generation Only
+
+**Torsional Diffusion is a Conformer Generator, not a full molecule generator.**
+
+* It requires the complete **molecular graph** (atom types and connectivity) as a fixed input.
+* It **only** generates the 3D shape (conformation), assuming the rigid bond lengths and angles are fixed constants.
+* The model **cannot** generate entirely novel molecular graphs.
+
+#### B. Forward Diffusion on the Hypertorus ($\mathbb{T}^M$)
+
+The model diffuses the vector of $M$ rotatable torsion angles, $\boldsymbol{\phi}_0 \in [-\pi, \pi)^M$, into a random state. Since the data is circular, standard Gaussian noise cannot be used.
+
+1.  **Circular Data Challenge:** Angles are **periodic** (e.g., $181^\circ \equiv -179^\circ$). Adding linear noise can cause small changes to result in large jumps across the boundary.
+2.  **The Solution:** The diffusion is performed over the **hypertorus** ($\mathbb{T}^M$), which is equivalent to performing diffusion using a **Wrapped Gaussian distribution**. But, **what is a Hypertorus?**
+
+
+The term **hypertorus** ($\mathbb{T}^M$) refers to the mathematical space formed by the **Cartesian product of $M$ circles**.
+
+* A **circle** ($\mathbb{S}^1$ or $\mathbb{T}^1$) is a 1-dimensional manifold that represents all possible values for a single periodic variable, like a clock face or a single torsion angle.
+* A **hypertorus** is simply the shape created when you combine $M$ such circles. Since a molecule's conformation is defined by $M$ independent torsion angles ($\phi_1, \phi_2, \dots, \phi_M$), the complete space of all possible conformations is this $M$-dimensional hypertorus $\mathbb{T}^M$.
+
+Imagine a molecule with only *two* rotatable bonds ($M=2$): the space of all its conformations is a 2D surface shaped like a **donut** (a standard torus). For a typical drug molecule with $M \approx 8$ rotatable bonds, the space is an 8-dimensional hypertorus.
+
+**The Solution for Circular Data**
+
+Operating diffusion on $\mathbb{T}^M$ is necessary because standard Euclidean diffusion (which assumes the data spans $\mathbb{R}^M$) would break the molecular structure:
+
+* **Problem:** If a torsion angle is at $179^\circ$ and standard Gaussian noise adds $3^\circ$, the result is $182^\circ$. In chemistry, $182^\circ$ is chemically equivalent to **$-178^\circ$** (a jump across the $180^\circ$ boundary). Standard diffusion models interpret this as a massive change, greatly inflating the error.
+* **The Solution:** Performing diffusion on the $\mathbb{T}^M$ space means using a **Wrapped Gaussian distribution**. This distribution correctly handles periodicity by mapping any value outside the $[-\pi, \pi)$ range back into it using the **modulo $2\pi$ operation**. This ensures that the noise perturbation is chemically sensible, allowing the model to smoothly and accurately denoise angles, even near the boundary. This focus on the correct geometric space is a key factor in Torsional Diffusion's superior speed and accuracy.
+
+
+All in all, the noisy torsion $\boldsymbol{\phi}_t$ at time $t$ is calculated by:
+
+$$\boldsymbol{\phi}_t = (\boldsymbol{\phi}_0 \sqrt{\bar{\alpha}_t} + \sqrt{1 - \bar{\alpha}_t} \boldsymbol{\epsilon}) \pmod{2\pi}$$
+
+Where:
+* $\boldsymbol{\epsilon}$: A **wrapped** Gaussian noise vector, ensuring periodicity.
+* $\pmod{2\pi}$: Ensures the angle remains mathematically within the range $[-\pi, \pi)$.
+* The final state $\boldsymbol{\phi}_T$ is a uniform random distribution over the torus.
+
+#### C. The Denoising Network and Equivariance
+
+The key to the model's success lies in its neural network architecture, which must predict the noise in a way that is invariant to global rotations/translations, while still respecting local chemistry.
+
+1.  **Target:** The neural network ($\mathbf{s}_{\theta}$) is trained to predict the **score function**—the gradient of the log probability density—over the torus:
+    $$\mathbf{s}_{\theta}(\boldsymbol{\phi}_t, t) \approx \nabla_{\boldsymbol{\phi}_t} \log p(\boldsymbol{\phi}_t)$$
+
+2.  **Architecture:** The model typically uses a **Graph Neural Network (GNN)**, often an **SE(3)-equivariant** or **invariant** variant (like a Torsion GNN), to process the molecule. The GNN takes the atom features and coordinates as input, but **only outputs a prediction for the $M$ torsion angles**, ensuring the model only denoises the flexible degrees of freedom.
+
+#### D. Reverse Process and Fast Sampling
+
+The reverse process is the generation step, starting from the random state $\boldsymbol{\phi}_T$.
+
+1.  **Training Loss:** The network is trained using a generalized **score matching loss** to accurately predict $\mathbf{s}_{\theta}$.
+2.  **Sampling:** Generation is typically performed using an **accelerated Ordinary Differential Equation (ODE) solver**, a deterministic approach similar to **DDIM**. Starting from a uniform random sample $\boldsymbol{\phi}_T$, the solver integrates the learned score function $\mathbf{s}_{\theta}$ back toward $\boldsymbol{\phi}_0$:
+
+$$\mathbf{d}\boldsymbol{\phi} = \left[ \mathbf{f}(\boldsymbol{\phi}, t) - \frac{1}{2} g(t)^2 \mathbf{s}_{\theta}(\boldsymbol{\phi}, t) \right] \mathbf{d}t$$
+
+The deterministic, low-dimensional nature of this integration is the reason for the **$10\text{x}$ to $100\text{x}$ speed-up** over full 3D diffusion models like GeoDiff.
+
+#### E. Final 3D Reconstruction
+
+The model's final output is a clean vector of torsion angles $\boldsymbol{\phi}_0$. A separate, deterministic chemical tool (e.g., using bond kinematics from RDKit or OpenBabel) then uses these predicted angles, along with the **fixed bond lengths and fixed bond angles**, to construct the final, complete **3D Cartesian coordinates** $\mathbf{x}_0$. This ensures the final molecule is chemically valid and geometrically precise by design.
 
 ---
 
-### 4.4 Implementation: Torsional Diffusion from Scratch
+### 5.3 Implementation: Torsional Diffusion from Scratch
 
-We'll implement torsional diffusion in 5 key components using Ibuprofen (C₁₃H₁₈O₂) as our example. The full implementation is available in [denoising_diffusion_mol.py](denoising_diffusion_mol.py).
+We'll implement torsional diffusion in 5 key components using Ibuprofen (C₁₃H₁₈O₂) as our example. The full implementation is available in my Github repo [computational-drug-discovery-learning](https://github.com/saeedmehrang/computational-drug-discovery-learning/blob/main/torsional_diffusion.py).
 
 #### Component 1: Molecular Torsion Analyzer
 
@@ -326,20 +415,38 @@ class MolecularTorsionAnalyzer:
 **Example: Ibuprofen Analysis**
 
 ```python
-ibuprofen_smiles = "CC(C)Cc1ccc(cc1)C(C)C(=O)O"
-mol = Chem.AddHs(Chem.MolFromSmiles(ibuprofen_smiles))
-AllChem.EmbedMolecule(mol, randomSeed=42)
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from torsional_diffusion import MolecularTorsionAnalyzer
 
+# Create molecule from SMILES
+smiles = 'CC(C)Cc1ccc(cc1)C(C)C(=O)O'  # Ibuprofen
+mol = Chem.MolFromSmiles(smiles)
+mol = Chem.AddHs(mol)
+
+# Generate 3D coordinates
+AllChem.EmbedMolecule(mol)
+AllChem.MMFFOptimizeMolecule(mol)
+
+# Extract torsion angles
 analyzer = MolecularTorsionAnalyzer()
-torsion_info, torsion_angles = analyzer.extract_torsion_angles(mol)
+torsion_info = analyzer.extract_torsion_angles(mol)
 
-# Results:
-# Formula: C13H18O2 (33 atoms total)
-# Found 8 rotatable bonds
-# Extracted 8 torsion angles (e.g., 62.22°, 174.56°, -171.05°, ...)
+print(f"Found {len(torsion_info)} torsion angles")
+for i, torsion in enumerate(torsion_info, 1):
+    print(f"Torsion {i}: {torsion.dihedral_atoms} = {torsion.angle:.2f} rad")
 ```
 
-**Efficiency gain**: Ibuprofen has 33 atoms × 3 coordinates = 99 dimensions in full 3D space, but only **8 torsional dimensions** → 12x reduction!
+Output
+```
+Found 4 torsion angles
+Torsion 1: (0, 1, 3, 4) = -2.99 rad
+Torsion 2: (1, 3, 4, 5) = -1.88 rad
+Torsion 3: (6, 7, 10, 11) = 1.06 rad
+Torsion 4: (7, 10, 12, 13) = 0.56 rad
+```
+
+**Efficiency gain**: Ibuprofen has 33 atoms × 3 coordinates = 99 dimensions in full 3D space, but only **4 torsional dimensions** → 24x reduction!
 
 ---
 
@@ -561,8 +668,12 @@ In the final part of this mini-series, we'll explore **autoregressive and transf
 
 [^2]: Dihedral angle visualization: Chemistry StackExchange, "[What is the meaning of the dihedral angle in HOOH?](https://chemistry.stackexchange.com/questions/87067/what-is-the-meaning-of-the-dihedral-angle-in-hooh)" License: CC BY-SA 4.0.
 
-**Additional References:**
-- Satorras, Victor Garcia, Emiel Hoogeboom, and Max Welling. "E(n) equivariant graph neural networks." *International Conference on Machine Learning*. PMLR, 2021.
-- Ho, Jonathan, Ajay Jain, and Pieter Abbeel. "Denoising diffusion probabilistic models." *Advances in Neural Information Processing Systems* 33 (2020): 6840-6851.
-- Schneuing, Arne, et al. "Structure-based drug design with equivariant diffusion models." *arXiv preprint arXiv:2210.13695* (2022).
-- Guan, Jiaqi, et al. "3D equivariant diffusion for target-aware molecule generation and affinity prediction." *arXiv preprint arXiv:2303.03543* (2023).
+[^3]: Satorras, Victor Garcia, Emiel Hoogeboom, and Max Welling. "E(n) equivariant graph neural networks." *International Conference on Machine Learning*. PMLR, 2021.
+
+[^4]: Ho, Jonathan, Ajay Jain, and Pieter Abbeel. "Denoising diffusion probabilistic models." *Advances in Neural Information Processing Systems* 33 (2020): 6840-6851.
+
+[^5]: Schneuing, Arne, et al. "Structure-based drug design with equivariant diffusion models." *arXiv preprint arXiv:2210.13695* (2022).
+
+[^6]: Guan, Jiaqi, et al. "3D equivariant diffusion for target-aware molecule generation and affinity prediction." *arXiv preprint arXiv:2303.03543* (2023).
+
+[^7]: Xu, Minkai, et al. "Geodiff: A geometric diffusion model for molecular conformation generation." arXiv preprint arXiv:2203.02923 (2022).
