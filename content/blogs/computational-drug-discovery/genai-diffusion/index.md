@@ -71,8 +71,6 @@ We'll explore diffusion models for molecular generation through two lenses:
 
 By the end, you'll understand both the theory behind diffusion models and how to implement them for 3D molecular conformation generation.
 
----
-This text provides a solid, detailed overview of Diffusion Models. Here is a reviewed and clarified version, incorporating necessary explanations for a beginner while maintaining the mathematical rigor.
 
 ***
 
@@ -500,71 +498,126 @@ This principle ensures:
 
 -----
 
-#### The EGNN Architecture: Invariance + Equivariance
 
-The **E(n) Equivariant Graph Neural Network (EGNN)** achieves this by strictly separating the flow of information:
+#### E(n) Equivariant Graph Neural Network Layer: Detailed Elaboration
 
-1.  **Invariant Quantities:** Features, distances, and angles (which **do not change** under E(3) transformations). These are used to compute the message strength.
-2.  **Equivariant Quantities:** Coordinates and displacement vectors (which **rotate and translate** with the input). These are used to update positions.
+The $\mathbf{E(n) \ Equivariant \ Graph \ Neural \ Network \ (EGNN)}$ layer, encapsulated in the `EGNN_Layer` class, is a specialized type of Graph Neural Network (GNN) designed for tasks where the physical location and orientation of the input data are critical, such as molecular modeling or point cloud processing. Its core mathematical principle is **equivariance** under the $\mathbf{E(n)}$ group (Euclidean group in $n$ dimensions, typically $n=3$ for physical space). This means that if the input graph (node positions and features) is rotated or translated, the output positions will undergo the *exact same* rotation and translation, while the output features will remain completely unchanged (**invariance**).
 
-#### The Core Mechanism: Scalar × Vector
+The architecture achieves this by rigidly separating the processing of **invariant quantities** (scalar features $\mathbf{h}_i$, squared distances $r_{ij}^2$) and **equivariant quantities** (coordinate vectors $\mathbf{x}_i$, displacement vectors $\mathbf{x}_i - \mathbf{x}_j$).
 
-The genius of the EGNN lies in how it updates the coordinates:
+***
 
-| Term | Quantity Type | Role |
-| :--- | :--- | :--- |
-| $\mathbf{h}_i, \mathbf{h}_j$ | Invariant | Node features |
-| $||\mathbf{x}_i - \mathbf{x}_j||^2$ | Invariant | Squared distance |
-| $\mathbf{x}_i - \mathbf{x}_j$ | Equivariant | Displacement vector |
+##### Mathematical Formulation of the Layer Operations
 
-The layer computes a **scalar weight** (or attention score) $\phi_x$ from the **invariant** information (features and distance, specifically the intermediate edge feature $\mathbf{e}_{ij}$). This scalar is then multiplied by the **equivariant** displacement vector:
+The EGNN layer performs two primary updates: an **invariant update** for the node features $\mathbf{h}_i$, and an **equivariant update** for the node coordinates $\mathbf{x}_i$.
 
-$$\Delta \mathbf{x}_{ij} = \phi_x(\mathbf{e}_{ij}) \cdot (\mathbf{x}_i - \mathbf{x}_j)$$
+##### 1. Invariant Feature Message Computation ($\mathbf{\Phi_e}$)
 
-The final coordinate update $\Delta \mathbf{x}_i$ is the aggregation (sum) of these messages:
+The edge model, or feature message function $\mathbf{\Phi_e}$, is defined by the $\texttt{edge\_mlp}$ in the code and is computed in the $\texttt{message}$ function. It calculates a feature message $\mathbf{e}_{ij}$ from node $j$ to node $i$ based only on invariant quantities: the concatenated features of the two nodes and the squared distance between them.
 
-$$\mathbf{x}_i' = \mathbf{x}_i + \sum_{j \in \mathcal{N}(i)} \Delta \mathbf{x}_{ij}$$
+$$
+\mathbf{e}_{ij} = \mathbf{\Phi_e}(\mathbf{h}_i, \mathbf{h}_j, r_{ij}^2)
+$$
 
-**Why This Works:** Multiplying an **equivariant vector** ($\mathbf{x}_i - \mathbf{x}_j$) by an **invariant scalar** ($\phi_x$) produces a new vector ($\Delta \mathbf{x}_{ij}$) that is *still* **equivariant**. This is the mathematical key to maintaining E(n) symmetry throughout the layer.
+where $r_{ij}^2 = \| \mathbf{x}_i - \mathbf{x}_j \|^2$.
 
------
+In the code:
+$$\mathbf{e}_{ij} = \texttt{edge\_mlp}(\mathbf{h}_i \Vert \mathbf{h}_j \Vert r_{ij}^2)$$
+This $\mathbf{e}_{ij}$ is an **invariant intermediate feature** which is crucial for both the feature update and the coordinate update. This message is then aggregated over all neighbors $j$ of node $i$:
+$$
+\mathbf{m}_i^h = \sum_{j \in \mathcal{N}(i)} \mathbf{e}_{ij}
+$$
+This aggregation is performed by the $\texttt{propagate}$ call using the 'add' aggregation scheme, resulting in $\texttt{agg\_h}$ in the code.
 
-#### Implementation Focus (Aligning with Code)
+***
 
-In the provided implementation, the coordinate update is separated from the PyTorch Geometric (`PyG`) `propagate` call, which is used only for **feature message aggregation**.
+##### 2. Invariant Feature Update ($\mathbf{\Phi_h}$)
 
-1.  The `message` function computes and returns the **invariant feature message** ($\mathbf{e}_{ij}$) while **caching** it for later use.
-2.  The `forward` function then manually recomputes the displacement vectors ($\mathbf{x}_i - \mathbf{x}_j$) and uses the cached feature messages to calculate the coordinate weights $\phi_x$.
-3.  Finally, it calculates the coordinate messages ($\Delta \mathbf{x}_{ij}$) and manually uses `index_add_` (or an equivalent manual approach) to **aggregate the coordinate updates** ($\Delta \mathbf{x}_i$).
+The node model, or feature update function $\mathbf{\Phi_h}$, is defined by the $\texttt{node\_mlp}$ and is computed in the $\texttt{update\_h}$ function. It updates the feature $\mathbf{h}_i$ based on the original feature and the aggregated incoming feature messages $\mathbf{m}_i^h$.
 
-The layer also includes a **residual connection** option, ensuring the layer's output feature $\mathbf{h}'$ can be defined as $\mathbf{h}' = \mathbf{h} + \text{NodeUpdate}(\mathbf{h}, \text{AggregatedMessages})$, provided the input and output dimensions match.
+$$
+\mathbf{h}_i' = \mathbf{\Phi_h}(\mathbf{h}_i, \mathbf{m}_i^h)
+$$
 
-```python
-# The message function computes and caches the feature message (Invariant)
-def message(self, ..., pos_i, pos_j):
-    # ... compute edge_message (Invariant)
-    self.edge_features = edge_message # Cache this
-    return edge_message 
+In the code:
+$$\mathbf{h}_i' = \texttt{node\_mlp}(\mathbf{h}_i \Vert \mathbf{m}_i^h)$$
 
-# The forward function then handles coordinate updates (Equivariant)
-def forward(self, h, pos, edge_index):
-    # Aggregation of features happens here (via propagate)
-    agg_h = self.propagate(...) 
-    
-    # Coordinate update is manual:
-    pos_diff = pos_i - pos_j       # Equivariant Vector
-    coord_weight = self.coord_mlp(self.edge_features) # Invariant Scalar
-    coord_messages = pos_diff * coord_weight # Equivariant Vector
-    
-    # Manual aggregation of coordinate messages
-    agg_pos_delta.index_add_(0, edge_index_i, coord_messages) 
-    pos_updated = pos + agg_pos_delta
-    
-    # ... update features (h_updated)
-    return h_updated, pos_updated
-```
+An optional **residual connection** is applied if $\texttt{residual}$ is $\texttt{True}$ and the feature dimensions match:
+$$
+\mathbf{h}_i^{out} = \mathbf{h}_i' \quad \text{or} \quad \mathbf{h}_i^{out} = \mathbf{h}_i + \mathbf{h}_i'
+$$
+This update ensures that the new features $\mathbf{h}_i^{out}$ remain **invariant** under E(n) transformations.
 
-**Stacking Layers for Deep Geometry Learning:**
+***
+
+##### 3. Equivariant Coordinate Update (The Core Mechanism)
+
+This is the most critical and distinct part of the EGNN, which is manually implemented in the $\texttt{forward}$ function *outside* of the $\texttt{propagate}$ loop to handle the vector geometry (if you are not familiar with $\texttt{propagate}$, see the next sub-section).
+
+**a. Coordinate Weight Calculation ($\mathbf{\Phi_x}$)**
+
+The $\texttt{coord\_mlp}$ defines a function $\mathbf{\Phi_x}$ that computes a **scalar weight** (or attention score) $a_{ij}$ from the invariant intermediate feature $\mathbf{e}_{ij}$.
+
+$$
+a_{ij} = \mathbf{\Phi_x}(\mathbf{e}_{ij})
+$$
+
+In the code:
+$$a_{ij} = \texttt{coord\_mlp}(\mathbf{e}_{ij}) \quad \text{where } a_{ij} \in \mathbb{R}^1$$
+
+Since $a_{ij}$ is derived solely from **invariant** quantities ($\mathbf{e}_{ij}$), the weight $a_{ij}$ itself is also **invariant**.
+
+**b. Equivariant Coordinate Message**
+
+The coordinate message $\mathbf{m}_{ij}^x$ from node $j$ to node $i$ is calculated by multiplying the **invariant scalar weight** $a_{ij}$ by the **equivariant displacement vector** $(\mathbf{x}_i - \mathbf{x}_j)$:
+
+$$
+\mathbf{m}_{ij}^x = a_{ij} \cdot (\mathbf{x}_i - \mathbf{x}_j)
+$$
+
+The product of an invariant scalar and an equivariant vector results in a new vector $\mathbf{m}_{ij}^x$ that is **still equivariant**, guaranteeing that if the input positions are rotated, $\mathbf{m}_{ij}^x$ rotates by the same amount.
+
+**c. Coordinate Aggregation and Final Update**
+
+The coordinate messages are aggregated over all neighbors $j$ to form the total displacement $\Delta \mathbf{x}_i$:
+
+$$
+\Delta \mathbf{x}_i = \sum_{j \in \mathcal{N}(i)} \mathbf{m}_{ij}^x
+$$
+
+The final updated position $\mathbf{x}_i'$ is then:
+
+$$
+\mathbf{x}_i' = \mathbf{x}_i + \Delta \mathbf{x}_i
+$$
+
+This ensures the new positions $\mathbf{x}_i'$ are **equivariant** with respect to the input positions, which is the necessary condition for the EGNN layer to maintain symmetry properties.
+
+
+
+
+***
+
+#### The Role and Flow of `propagate`
+
+The `propagate` method is the central orchestration function within the **MessagePassing** base class of libraries like PyTorch Geometric ($\text{PyG}$). It is designed to manage the three core stages of a standard Graph Neural Network (GNN) layer: **Message Generation**, **Aggregation**, and **Update**. Essentially, `propagate` handles the entire process of passing information (messages) between nodes across the edges of a graph, abstracting away the tedious low-level tensor indexing and scattering/gathering operations.
+
+When a user calls $\texttt{self.propagate}(\texttt{edge\_index}, \dots)$, they are specifying *which* edges messages should flow over ($\texttt{edge\_index}$) and providing the initial node features ($\mathbf{h}$) or positions ($\mathbf{x}$) as keyword arguments (e.g., $\texttt{h=h}$, $\texttt{pos=pos}$).
+
+The method executes a sequential three-step process:
+
+1.  **Message Generation ($\mathbf{message}$):** `propagate` first calls the user-defined $\texttt{message}$ function, which computes the individual **message vector** $\mathbf{m}_{j \to i}$ for every edge $(j, i) \in \mathcal{E}$. It automatically splits the input node features into source ($\mathbf{h}_j$) and target ($\mathbf{h}_i$) components for the $\texttt{message}$ function to use, often along with edge features or other required quantities like relative positions.
+2.  **Aggregation ($\mathbf{aggregate}$):** After all messages are generated, $\texttt{propagate}$ calls the $\texttt{aggregate}$ function (which is typically fixed by the layer's initialization, e.g., 'sum', 'mean', 'max'). This function takes all messages $\mathbf{m}_{j \to i}$ destined for a single node $i$ and combines them into one aggregated message $\mathbf{m}_i$:
+    $$\mathbf{m}_i = \bigoplus_{j \in \mathcal{N}(i)} \mathbf{m}_{j \to i}$$
+    This step uses efficient sparse matrix operations (like $\text{torch.scatter}$ or $\text{torch\_sparse}$ primitives) to perform the gathering and summation according to the $\texttt{edge\_index}$.
+3.  **Update ($\mathbf{update}$):** Finally, $\texttt{propagate}$ calls the $\texttt{update}$ function. This function takes the original node features $\mathbf{h}_i$ and the newly calculated aggregated message $\mathbf{m}_i$, and computes the new node features $\mathbf{h}_i'$ for the next layer.
+
+By handling the connectivity (via $\texttt{edge\_index}$) and the aggregation logic, `propagate` significantly simplifies the implementation of complex GNN layers, allowing the developer to focus only on defining the **local computations** within the $\texttt{message}$ and $\texttt{update}$ functions. **Importantly, in our EGNN implementation, the `propagate` method is only used to compute the feature aggregation ($\mathbf{m}_i^h$), while the coordinate update is calculated manually in the $\texttt{forward}$ method to ensure specific mathematical equivariance properties are upheld.**
+
+
+--- 
+
+#### Stacking Layers for Deep Geometry Learning:
 
 The `EGNN` wrapper class stacks these layers:
 
