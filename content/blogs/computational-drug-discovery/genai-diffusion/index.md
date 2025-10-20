@@ -392,24 +392,54 @@ We'll implement torsional diffusion in 5 key components using Ibuprofen (C₁₃
 
 #### Component 1: Molecular Torsion Analyzer
 
-The `MolecularTorsionAnalyzer` class provides three key methods:
+The `MolecularTorsionAnalyzer` class provides three key methods that fuel the last method `extract_torsion_angles`:
 
 ```python
 class MolecularTorsionAnalyzer:
     @staticmethod
-    def identify_rotatable_bonds(mol):
-        """Apply 4 rules: single bond, not in ring, not terminal, degree >= 2"""
+    def identify_rotatable_bonds(mol: Chem.Mol) -> List[Tuple[int, int]]:
+        """Apply 4 rules: single bond, not in ring, not terminal (degree >= 2), not hydrogen"""
         # Returns list of (atom_i, atom_j) tuples
 
     @staticmethod
-    def get_dihedral_atoms(mol, bond_atoms):
+    def get_dihedral_atoms(mol: Chem.Mol, bond_atoms: Tuple[int, int]) -> Optional[Tuple[int, int, int, int]]:
         """For bond (i, j), find neighbors to form (a, i, j, b)"""
         # Returns 4-atom tuple defining dihedral angle
 
     @staticmethod
-    def calculate_dihedral_angle(coords, atom_indices):
+    def calculate_dihedral_angle(coords: np.ndarray, atom_indices: Tuple[int, int, int, int]) -> float:
         """Calculate angle between two planes using cross products"""
         # Returns angle in radians [-π, π]
+
+    @staticmethod
+    def extract_torsion_angles(mol: Chem.Mol) -> List[TorsionInfo]:
+        """Extract all torsion angles from a molecule conformation."""
+        conf = mol.GetConformer()
+        coords = conf.GetPositions()
+
+        # Step 1: Find all rotatable bonds
+        rotatable_bonds = MolecularTorsionAnalyzer.identify_rotatable_bonds(mol)
+
+        torsion_info = []
+
+        # Step 2: For each rotatable bond, compute its torsion angle
+        for bond in rotatable_bonds:
+            # Get the 4 atoms (a-i-j-b) defining the dihedral
+            dihedral_atoms = MolecularTorsionAnalyzer.get_dihedral_atoms(mol, bond)
+
+            if dihedral_atoms is None:
+                continue
+
+            # Calculate the actual angle value
+            angle = MolecularTorsionAnalyzer.calculate_dihedral_angle(coords, dihedral_atoms)
+
+            torsion_info.append(TorsionInfo(
+                bond=bond,
+                dihedral_atoms=dihedral_atoms,
+                angle=angle
+            ))
+
+        return torsion_info
 ```
 
 **Example: Ibuprofen Analysis**
