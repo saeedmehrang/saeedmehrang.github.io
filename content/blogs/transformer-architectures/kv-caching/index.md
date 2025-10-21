@@ -83,6 +83,10 @@ Instead of recomputing K and V for all tokens at each step, we:
 
 This reduces complexity from **O(n²) to O(n)** - a massive improvement!
 
+### Why We Don't Cache Q Tensors in Autoregressive Models?!
+
+Short answer, because we no longer need them! The fundamental reason we cache K and V but not Q is that they play asymmetric roles in autoregressive generation. When generating token `t`, the attention computation is `Attention(Q_t, K_{1:t}, V_{1:t}) = softmax(Q_t @ K_{1:t}^T / sqrt(d)) @ V_{1:t}`, where Q_t comes only from the current token at position t, while K_{1:t} and V_{1:t} come from all previous tokens (positions 1 to t). At each generation step, we compute a new query (q_1, then q_2, then q_3, etc.) that attends to an accumulating set of keys and values—for example, q_3 attends to [k_1, k_2, k_3] and [v_1, v_2, v_3]. The critical observation is that we never reuse q_1 or q_2 after their respective steps, but we always reuse k_1, k_2, v_1, v_2 for all subsequent tokens. This happens because of the causal constraint in autoregressive models: each new token's query looks back at all previous keys and values, but once a token is generated, its query is never needed again.
+
 ## Interactive Visualization of Memory Accumulation
 
 To better understand how memory accumulation in KV-caching works in practice, I've created an interactive visualization that shows the generation process step-by-step. Click "Start Prefill Phase" to see how the model first processes the entire prompt and populates the initial cache. Then watch as the model generates tokens one at a time, with the cache growing incrementally at each step.
