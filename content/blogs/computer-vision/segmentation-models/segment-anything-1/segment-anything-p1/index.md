@@ -136,7 +136,10 @@ SAM exhibits *task generalization*: it can perform tasks at inference time that 
 
 ## 3. The SAM Architecture: Decoupling and Efficiency
 
-SAM's architecture is a masterclass in efficiency through decoupling. The three-component design—image encoder, prompt encoder, and mask decoder—is motivated by a key computational insight: image encoding is expensive but needs to happen only once per image, while prompt encoding and mask prediction must be fast enough for real-time interaction.
+SAM's architecture is a masterclass in efficiency through decoupling. The three-component design—image encoder, prompt encoder, and mask decoder—is motivated by a key computational insight: image encoding is expensive but needs to happen only once per image, while prompt encoding and mask prediction must be fast enough for real-time interaction. See the image below for a simple schematic illustration of the architecture (image adopted from the original article [^1])
+
+{{< framed_image src="arch-simple.png" alt="simple-arch" width="900px" height="300px" >}}
+{{< /framed_image >}}
 
 ### 3.1. Image Encoder: The Vision Transformer Backbone
 
@@ -234,7 +237,7 @@ The mask encoder uses:
 
 The mask prompt embedding is added element-wise to the image embedding, allowing the mask to spatially modulate which regions the decoder should focus on.
 
-#### 3.2.3. Text Prompt Encoding (Experimental)
+#### 3.2.3. Text Prompt Encoding
 
 For **text prompts**, SAM leverages CLIP's text encoder:
 1. Input: Free-form text description (e.g., "a red car")
@@ -361,17 +364,17 @@ Focal Loss addresses the fundamental class imbalance in segmentation: most pixel
 
 Focal Loss down-weights easy examples and focuses learning on hard examples:
 
-$$\mathcal{L}_{\text{focal}} = -\frac{1}{N} \sum_{i=1}^{N} \alpha_i (1 - p_i)^{\gamma} \log(p_i)$$
+$$\mathcal{L}_{\text{focal}} = -\frac{1}{N} \sum_{i=1}^{N} \alpha_i (1 - p_t)^{\gamma} \log(p_t)$$
 
 where:
 - $N$ is the number of pixels
-- $p_i$ is the predicted probability for pixel $i$'s ground truth class
+- $p_t$ is the confidence for pixel $i$'s ground truth class. Confidence is $p$ for positive class and $1-p$ for the negative class.
 - $\alpha_i$ is a class-balancing weight (typically $\alpha = 0.25$ for positive class)
 - $\gamma$ is the focusing parameter (typically $\gamma = 2$)
 
-The key term is $(1 - p_i)^{\gamma}$:
-- When $p_i \approx 1$ (easy example, correct prediction), $(1 - p_i)^{\gamma} \approx 0$ → loss contribution is minimal
-- When $p_i \approx 0$ (hard example, incorrect prediction), $(1 - p_i)^{\gamma} \approx 1$ → full loss contribution
+The key term is $(1 - p_t)^{\gamma}$:
+- When $p_t \approx 1$ (easy example, correct prediction), $(1 - p_t)^{\gamma} \approx 0$ → loss contribution is minimal
+- When $p_t \approx 0$ (hard example, incorrect prediction), $(1 - p_t)^{\gamma} \approx 1$ → full loss contribution
 
 This focusing effect forces the model to improve on challenging pixels—typically object boundaries, small structures, and ambiguous regions—rather than getting distracted by easy background classifications.
 
