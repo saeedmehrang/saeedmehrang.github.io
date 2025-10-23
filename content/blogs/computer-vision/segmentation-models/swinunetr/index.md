@@ -1,7 +1,7 @@
 ---
 title: "SwinUNETR: A Vision Transformer for Medical Image Segmentation"
 date: 2025-10-20
-draft: false
+draft: true
 tags: ["computer-vision", "deep-learning", "transformers", "medical-imaging", "segmentation"]
 categories: ["Computer Vision"]
 description: "An in-depth look at SwinUNETR, combining Swin Transformers with U-Net architecture for 3D medical image segmentation"
