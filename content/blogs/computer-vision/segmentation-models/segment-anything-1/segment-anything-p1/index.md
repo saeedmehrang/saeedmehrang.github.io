@@ -153,13 +153,17 @@ SAM uses a **Vision Transformer (ViT)** architecture, specifically adapted for h
 - **Patch Size**: 16×16 pixels
 - **Input Resolution**: 1024×1024×3 (RGB)
 - **Output Embedding**: 64×64×256 (spatial downsampling by 16×, with 256-dimensional features per position)
+  - Internal hidden dimension: 1280 (ViT-H), 1024 (ViT-L), 768 (ViT-B)
+  - Output features are projected down to 256 dimensions for the decoder
 - **Parameters**: 636 million in ViT-H (308M in ViT-L, 91M in ViT-B)
+- **Architecture**: 32 Transformer blocks (ViT-H), 24 blocks (ViT-L), 12 blocks (ViT-B)
 
 The ViT-H architecture processes images by:
-1. Dividing the 1024×1024 input into a grid of 64×64 patches (each 16×16 pixels)
-2. Linearly projecting each patch into a 256-dimensional embedding
+1. Dividing the 1024×1024 input into a grid of 64×64 patches (each 16×16 pixels, total 4096 patches)
+2. Linearly projecting each patch into a 1280-dimensional embedding (the hidden dimension of ViT-H)
 3. Adding learnable positional embeddings to retain spatial information
-4. Processing the sequence of patch embeddings through multiple Transformer blocks
+4. Processing the sequence of patch embeddings through 32 Transformer blocks (each with multi-head self-attention and MLP)
+5. Projecting the final 64×64×1280 feature map down to 64×64×256 for compatibility with the lightweight decoder
 
 #### 3.1.2. Masked Autoencoder (MAE) Pre-training
 
@@ -176,17 +180,25 @@ MAE pre-training provides SAM with several advantages:
 
 The specific MAE pre-training used for SAM employed the ViT-H architecture on large-scale image datasets, providing a powerful starting point before fine-tuning on the promptable segmentation task.
 
-#### 3.1.3. Architectural Modifications for High-Resolution
+#### 3.1.3. Pre-training vs Fine-tuning Architecture
 
-Standard ViTs struggle with the computational cost of processing high-resolution images because self-attention complexity scales quadratically with sequence length. SAM addresses this through architectural adaptations:
+The ViT image encoder architecture differs between pre-training and fine-tuning phases:
 
-1. **Windowed Attention**: Uses 14×14 windowed attention in most layers, where attention is computed only within local spatial windows rather than globally. This reduces complexity from $O(N^2)$ to $O(N \cdot W^2)$ where $W$ is the window size.
+**During MAE Pre-training:**
+- Uses standard **global self-attention** across all patches in all 32 Transformer blocks (for ViT-H)
+- Processes images at lower resolution (typically 224×224 or 448×448)
+- This is the standard ViT architecture without hierarchical modifications
 
-2. **Global Attention Blocks**: Includes four equally-spaced global attention blocks that process the entire spatial grid, ensuring global context isn't lost despite windowed attention.
+**During SAM Fine-tuning (adapted from ViTDet):**
+To handle high-resolution 1024×1024 images efficiently, SAM adapts the pre-trained backbone:
+
+1. **Window Attention**: Divides the 64×64 feature map into non-overlapping 14×14 windows. Self-attention is computed within each window independently, reducing complexity from $O(N^2)$ to $O(N \cdot W^2)$ where $N = 4096$ patches and $W = 196$ patches per window.
+
+2. **Cross-Window Propagation**: Inserts **4 global attention blocks** (or convolutional blocks) evenly spaced throughout the 32-block backbone to enable information flow across windows. These propagation blocks process the entire 64×64 spatial grid.
 
 3. **Efficient Implementation**: Uses optimized attention kernels and mixed-precision training (FP16/FP32) to maximize throughput.
 
-This design allows SAM to process 1024×1024 images—significantly higher resolution than typical vision models that operate on 224×224 or 384×384 inputs—while maintaining reasonable computational costs.
+This adaptation strategy—maintaining global attention during pre-training but using windowed attention with sparse global blocks during fine-tuning—allows SAM to leverage standard ViT/MAE pre-trained weights while processing 1024×1024 images efficiently. The windowed attention adaptations are applied **only during fine-tuning** and do not require retraining the MAE pre-trained model.
 
 #### 3.1.4. The One-Time Cost Advantage
 

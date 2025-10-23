@@ -178,19 +178,76 @@ SAM's practical effectiveness stems from careful attention to implementation det
 
 **Inference**:
 - Image encoder: ~200-300ms on A100 GPU (one-time per image)
+  - Note: This timing includes the windowed attention adaptation used during fine-tuning
+  - Window size: 14×14 patches within the 64×64 feature map
+  - 4 global attention blocks evenly distributed across the 32-layer ViT-H backbone
 - Prompt encoder + mask decoder: ~50ms on CPU in web browser (via ONNX runtime)
 - Full pipeline: ~250-350ms for first mask, ~50ms for subsequent masks on same image
 
 **Model Size**:
 - ViT-H full model: ~2.4GB (FP32 weights)
-- ViT-L model: ~1.2GB
-- ViT-B model: ~375MB
+  - Image encoder (ViT-H): ~636M parameters
+  - Prompt encoder: ~4M parameters (lightweight)
+  - Mask decoder: ~4M parameters (lightweight, 2-block Transformer)
+- ViT-L model: ~1.2GB (~308M encoder parameters)
+- ViT-B model: ~375MB (~91M encoder parameters)
 
-The smallest model (ViT-B) provides a good accuracy/efficiency trade-off for resource-constrained environments.
+The smallest model (ViT-B) provides a good accuracy/efficiency trade-off for resource-constrained environments. The overwhelming majority of parameters reside in the image encoder, which is pre-trained with MAE and adapted with window attention during SAM fine-tuning.
 
-### 6.3. Design Trade-offs
+### 6.3. Image Encoder Architecture: Adapting ViT for High-Resolution Segmentation
 
-#### 6.3.1. Resolution vs. Speed
+SAM's image encoder architecture is based on the plain Vision Transformer (ViT) but adapts it for efficient high-resolution processing during fine-tuning, following the methodology introduced in the ViTDet paper [^5].
+
+#### 6.3.1. The Two-Phase Architecture Strategy
+
+**Phase 1: MAE Pre-training (Standard ViT)**
+- Uses the original ViT architecture with **global self-attention** in all layers
+- ViT-H: 32 Transformer blocks, each with standard multi-head self-attention
+- Pre-training resolution: Lower resolution (224×224 or 448×448)
+- All 4096 patches (64×64 grid at 1024×1024) interact via global attention
+- This is computationally feasible during pre-training at lower resolutions
+
+**Phase 2: SAM Fine-tuning (ViTDet-adapted ViT)**
+To process 1024×1024 images efficiently during segmentation fine-tuning, SAM adopts the ViTDet backbone adaptation strategy:
+
+1. **Window Attention** (28 of 32 blocks):
+   - Divides the 64×64 feature map into non-overlapping 14×14 windows
+   - Each of the (64/14)² ≈ 20.4 → 5×5 = 25 windows processed independently
+   - Self-attention computed only within each 196-patch window
+   - Complexity reduction: From $O(N^2)$ to $O(N \cdot W^2)$ where $N = 4096$, $W = 196$
+   - Reduction factor: $N/W = 4096/196 ≈ 21×$ speedup per layer
+
+2. **Global Propagation Blocks** (4 of 32 blocks):
+   - Evenly distributed across the backbone (blocks 8, 16, 24, 32 for ViT-H with 32 layers)
+   - These 4 blocks use **global self-attention** across all 4096 patches
+   - Purpose: Enable information flow across windows to maintain global context
+   - Alternative: Can use convolutional blocks instead of global attention
+   - The paper shows that 4 propagation blocks are sufficient (see ablations in Sec. 9)
+
+3. **No Window Shifting**:
+   - Unlike Swin Transformer, SAM does not use shifted windows
+   - Relies on the 4 global propagation blocks for cross-window communication
+   - This simplifies the architecture and maintains compatibility with pre-trained weights
+
+**Key Advantage**: This two-phase strategy allows SAM to use readily available MAE pre-trained ViT models (which use global attention) without requiring hierarchical pre-training architectures. The window attention adaptation is applied **only during fine-tuning**, making it compatible with any standard ViT backbone.
+
+#### 6.3.2. ViTDet Influence and Plain Backbone Philosophy
+
+SAM's image encoder directly adopts the methodology from "Exploring Plain Vision Transformer Backbones for Object Detection" [^5] (ViTDet paper). The ViTDet approach maintains several key principles:
+
+1. **Decoupling**: Pre-training architecture (plain ViT with global attention) remains separate from task-specific adaptations (window attention for detection/segmentation)
+
+2. **Plain Backbone**: No hierarchical features or multi-scale processing in the backbone itself—the ViT outputs a single-scale 64×64×256 feature map
+
+3. **Simple Feature Pyramid**: Rather than FPN, builds multi-scale features from only the final backbone output using parallel conv/deconv operations
+
+4. **Minimal Modifications**: Window attention + sparse global blocks is sufficient; no need for complex hierarchical designs like Swin or pyramid architectures
+
+This philosophy enables SAM to benefit from improvements in ViT pre-training (MAE, better architectures, larger datasets) without redesigning the entire system.
+
+### 6.4. Design Trade-offs
+
+#### 6.4.1. Resolution vs. Speed
 
 **Decision**: 1024×1024 input resolution
 
@@ -204,7 +261,7 @@ The smallest model (ViT-B) provides a good accuracy/efficiency trade-off for res
 
 1024×1024 was chosen as a sweet spot where most objects retain sufficient detail while maintaining reasonable inference speed.
 
-#### 6.3.2. Real-time Decoder vs. Accuracy
+#### 6.4.2. Real-time Decoder vs. Accuracy
 
 **Decision**: Lightweight 2-block transformer decoder with two-way attention
 
@@ -214,7 +271,7 @@ The smallest model (ViT-B) provides a good accuracy/efficiency trade-off for res
 
 **Justification**: The heavy image encoder (ViT-H with 636M parameters) does most of the visual understanding. The decoder's job is primarily to combine image and prompt information, which doesn't require deep processing. Experiments with deeper decoders (4, 6, 8 blocks) showed marginal improvements not worth the speed cost.
 
-#### 6.3.3. Three Output Masks vs. More
+#### 6.4.3. Three Output Masks vs. More
 
 **Decision**: Predict 3 masks per prompt
 
@@ -224,7 +281,7 @@ The smallest model (ViT-B) provides a good accuracy/efficiency trade-off for res
 
 **Empirical finding**: Objects are typically nested at most 3 levels deep. More than 3 masks provided diminishing returns while increasing computational cost and making ranking more difficult.
 
-#### 6.3.4. Ambiguity-Aware vs. Single Output
+#### 6.4.4. Ambiguity-Aware vs. Single Output
 
 **Ablation results** (from paper):
 - Single-output SAM: 57.9 mIoU on 23-dataset benchmark
@@ -233,7 +290,7 @@ The smallest model (ViT-B) provides a good accuracy/efficiency trade-off for res
 
 The ambiguity-aware design improves robustness even when using automatic ranking (1.4 mIoU gain). With oracle selection, the gap is much larger (9.7 mIoU), showing that multiple outputs capture valid alternative interpretations.
 
-### 6.4. Zero-Shot Capabilities
+### 6.5. Zero-Shot Capabilities
 
 SAM's zero-shot performance—its ability to segment objects from novel domains without fine-tuning—is remarkable:
 
@@ -249,7 +306,7 @@ SAM matches or exceeds RITM despite never seeing these datasets during training.
 - Boundary quality is often superior to specialized models, with crisper edges and better small object handling
 - Occasional failures include: hallucinating disconnected components, missing fine structures (thin rods, wires), and difficulty with extremely ambiguous prompts
 
-### 6.5. Composability in Larger Systems
+### 6.6. Composability in Larger Systems
 
 SAM's design as a promptable module enables seamless integration into complex systems:
 
@@ -325,16 +382,30 @@ This design philosophy extends to the minimum-loss matching strategy during trai
 
 The separation of image encoding (expensive) and prompt processing (cheap) is an application of **amortization**: pay a high upfront cost once, then reap benefits across many subsequent operations.
 
-**Computational Complexity**:
-- Image encoder: $O(N^2 D)$ where $N$ = number of patches (64×64 = 4096), $D$ = model dimension
-- Prompt encoder: $O(M D)$ where $M$ = number of prompt tokens (typically <10)
-- Mask decoder: $O(N D + M D + N M)$ (self-attention on prompts, cross-attention between prompts and image)
+**Computational Complexity Analysis**:
 
-For interactive applications with $K$ prompts on the same image:
-- Naive approach (re-encode image each time): $O(K \cdot N^2 D)$
-- Amortized approach: $O(N^2 D + K \cdot (MD + ND + NM))$
+**Image Encoder** (ViT-H with window attention during fine-tuning):
+- With global attention: $O(L \cdot N^2 \cdot D)$ where $L = 32$ layers, $N = 4096$ patches (64×64), $D = 1280$ hidden dimension
+- With windowed attention: $O(L \cdot N \cdot W^2 \cdot D)$ where $W = 196$ patches per window (14×14)
+- Plus 4 global propagation blocks: $O(4 \cdot N^2 \cdot D)$
+- Total fine-tuning complexity: $O(28 \cdot N \cdot W^2 \cdot D + 4 \cdot N^2 \cdot D)$
 
-Since $N^2 \gg M$ and $K$ is large in interactive use, amortization provides massive speedup.
+**Prompt Encoder**:
+- Sparse prompts (points/boxes): $O(M \cdot D)$ where $M$ = number of prompt tokens (typically <10)
+- Dense prompts (masks): $O(H \cdot W \cdot C)$ for convolutional downsampling, where the input mask is $H \times W$ and goes through several conv layers
+
+**Mask Decoder** (2-block Transformer with two-way attention):
+- Self-attention on prompts: $O(M^2 \cdot D)$
+- Cross-attention (prompts → image): $O(M \cdot N \cdot D)$
+- Cross-attention (image → prompts): $O(N \cdot M \cdot D)$
+- MLP layers: $O((M + N) \cdot D^2)$
+- Total per prompt: $O(M^2 \cdot D + 2 \cdot M \cdot N \cdot D + (M + N) \cdot D^2)$
+
+**Amortization for Interactive Applications with $K$ prompts**:
+- Without amortization: $O(K \cdot L \cdot N^2 \cdot D)$ (re-encode image each time)
+- With amortization: $O(L \cdot N^2 \cdot D + K \cdot (M \cdot N \cdot D))$
+
+Since the image encoding dominates ($N^2 = 16M$ operations per attention layer vs. $M \cdot N \approx 40K$ for decoder with $M \approx 10$) and $K$ is typically large (10-100 prompts) in interactive use, amortization provides approximately a $K$-fold speedup, making real-time interaction possible.
 
 ---
 
@@ -699,3 +770,5 @@ The Segment Anything project successfully validated that image segmentation can 
 [^3]: GitHub Repository: https://github.com/facebookresearch/segment-anything
 
 [^4]: Dosovitskiy, A., et al. (2020). "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale."
+
+[^5]: Li, Yanghao, et al. "Exploring plain vision transformer backbones for object detection." European Conference on Computer Vision. 2022. (ViTDet paper)
