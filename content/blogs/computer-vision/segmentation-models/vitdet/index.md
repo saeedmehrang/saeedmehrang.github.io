@@ -11,6 +11,10 @@ summary: "ViTDet demonstrates that plain, non-hierarchical Vision Transformers c
 math: true
 ShowToc: true
 TocOpen: true
+cover: 
+  image: "cover.png"
+  alt: "ViTDet"
+  caption: "ViTDet: Plain Vision Transformer Backbones for Object Detection"
 ---
 
 | Characteristic | Detail |
