@@ -47,6 +47,7 @@ params:
     description: "This website hosts Saeed Mehrang's research papers, curriculum vitae, and contact information."
     author: *title
     # googleAnalyticsID: "G-XXXXX"
+    copyright: ""
     DateFormat: "January 2006"
     defaultTheme: light
     hideFooter: false
