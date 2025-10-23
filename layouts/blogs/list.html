@@ -19,6 +19,7 @@
 {{- $pages := .RegularPages }}
 
 {{- if $sections }}
+<h2 class="list-title-separator">Miniseries / Collections</h2>
 <div class="blog-grid">
 {{- range $sections }}
 <article class="post-entry">
@@ -42,7 +43,7 @@
 
 {{- if $pages }}
 {{- if $sections }}
-<h2>All Blog Posts</h2>
+<h2 class="list-title-separator">Standalone Posts</h2>
 {{- end }}
 
 {{- $paginator := .Paginate $pages }}

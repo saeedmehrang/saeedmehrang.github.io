@@ -41,3 +41,15 @@
 .blog-grid .post-entry .entry-content {
     flex-grow: 1;
 }
+
+/* Custom CSS to increase spacing for the "Standalone Posts" title */
+.list-title-separator {
+    /* Large space *above* the title to separate it from the previous grid */
+    margin-top: 3em; 
+    
+    /* Moderate space *below* the title to separate it from the next grid */
+    margin-bottom: 2em; 
+
+    /* Optional: Make them slightly bigger than default H2 */
+    font-size: 1.1em;
+}
