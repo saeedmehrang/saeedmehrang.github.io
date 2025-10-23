@@ -24,7 +24,7 @@ TocOpen: true
 | **Prerequisites** | Transformers, Vision Transformers (ViT) |
 
 
-**Note:** This technical deep dive is split into three parts. This part (**Part 1**) covers the foundational innovations of SAM: the promptable segmentation task formulation, the three-module architecture (image encoder, prompt encoder, and mask decoder), and the training objectives including the combined Focal+Dice loss and multi-mask ambiguity handling. [**Part 2**](/content/blogs/computer-vision/segmentation-models/segment-anything-1/segment-anything-p2/index.md) explores the data engine methodology that enabled the SA-1B dataset, implementation details, theoretical foundations, comprehensive zero-shot transfer experiments across five tasks, ablation studies, and limitations with future directions. **Part 3** shows the API usage and code examples in a Google Colab.
+**Note:** This technical deep dive is split into three parts. This part (**Part 1**) covers the foundational innovations of SAM: the promptable segmentation task formulation, the three-module architecture (image encoder, prompt encoder, and mask decoder), and the training objectives including the combined Focal+Dice loss and multi-mask ambiguity handling. [**Part 2**](../segment-anything-p2/) explores the data engine methodology that enabled the SA-1B dataset, implementation details, theoretical foundations, comprehensive zero-shot transfer experiments across five tasks, ablation studies, and limitations with future directions. **Part 3** shows the API usage and code examples in a Google Colab.
 
 ---
 
@@ -262,7 +262,10 @@ This composability allows rich prompt specifications that disambiguate and refin
 
 ### 3.3. Lightweight Mask Decoder: Speed Through Design
 
-The mask decoder is the third and final component, designed to be extremely fast while producing high-quality, ambiguity-aware predictions.
+The mask decoder is the third and final component, designed to be extremely fast while producing high-quality, ambiguity-aware predictions. See the decoder architecture in the image below (Figure 14 adopted from the original article [^1]).
+
+{{< framed_image src="decoder.png" alt="simple-decoder-arch" width="500px" height="450px" >}}
+{{< /framed_image >}}
 
 #### 3.3.1. Overall Architecture
 
@@ -508,7 +511,7 @@ However, the paper notes that training on *only* the automatic masks (without ov
 
 ---
 
-This was the first part of the 3 part series on Segment Anything Model V1. See the part 2 [here](/content/blogs/computer-vision/segmentation-models/segment-anything-1/segment-anything-p2/index.md) that explores how SAM was trained at scale, its zero-shot capabilities, and technical analysis. Part 3 will cover the api and code examples in python and Google Colab.
+This was the first part of the 3 part series on Segment Anything Model V1. See the part 2 [here](../segment-anything-p2/) that explores how SAM was trained at scale, its zero-shot capabilities, and technical analysis. Part 3 will cover the api and code examples in python and Google Colab.
 
 ---
 
