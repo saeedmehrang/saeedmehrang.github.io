@@ -1,7 +1,7 @@
 ---
 title: "Taming the Transformer: How Perceiver IO and PaCa-ViT Conquer Quadratic Complexity"
 date: 2025-10-23
-author: "Sam"
+author: "Saeed Mehrang"
 tags: ["AI", "Machine Learning", "Transformers", "Efficiency", "Computer Vision", "Perceiver IO", "PaCa-ViT", "Attention Mechanisms"]
 summary: "A deep dive into two novel architectures, Perceiver IO and PaCa-ViT, that break the O(N^2) barrier in Transformers, enabling them to process massive inputs efficiently."
 cover:
