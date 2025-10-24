@@ -1,9 +1,9 @@
 ---
-title: "Computational Drug Discovery Part 5 (Part 1/3): Generative Models for De Novo Drug Design - VAE and GAN"
+title: "Computational Drug Discovery Part 5 (Subpart 1/3): Generative Models for De Novo Drug Design - VAE and GAN"
 date: 2025-10-16
 draft: false
 author: Saeed Mehrang
-summary: "From prediction to creation (Part 1/3): A quick intro to how AI generates novel drug molecules optimized for multiple objectives using VAE and GAN model architectures."
+summary: "From prediction to creation (Subpart 1/3): A quick intro to how AI generates novel drug molecules optimized for multiple objectives using VAE and GAN model architectures."
 tags: ["Computational Drug Discovery", "Generative Models", "VAE", "GAN", "Molecular Generation", "Deep Learning"]
 series_order: 5
 series: ["Computational Drug Discovery"]
@@ -32,7 +32,7 @@ Throughout this series, we've built up the foundational components of AI-driven 
 - **Blog 3**: We dove into AlphaFold2 and learned how deep learning predicts protein target structures with near-experimental accuracy
 - **Blog 4**: We studied Graph Neural Networks and their ability to predict molecular properties like toxicity, solubility, and binding affinity
 
-Now, we're ready to take the most ambitious step: **generating entirely new molecules from scratch**. I have split the generation methods into 3 parts miniseries, with VAEs and GANs covered in this part, Denoising Diffusion in part 2 and Autoregressive models in part 3. Please note that this is neither an exhaustive review nor an in-depth tutorial of VAEs and GANs, but rather an overview of what a VAE and GAN are and how they have been used to generate molecules. Therefore, this is rather shorter blog than the previous 4 parts. 
+Now, we're ready to take the most ambitious step: **generating entirely new molecules from scratch**. I have split the generation methods into 3 subparts miniseries, with VAEs and GANs covered in this subpart, Denoising Diffusion in subpart 2 and Autoregressive models in subpart 3. Please note that this is neither an exhaustive review nor an in-depth tutorial of VAEs and GANs, but rather an overview of what a VAE and GAN are and how they have been used to generate molecules. Therefore, this is rather shorter blog than the previous 4 parts. 
 
 ### 1.2 The Generative Challenge
 

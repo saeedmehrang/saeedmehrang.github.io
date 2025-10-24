@@ -1,9 +1,9 @@
 ---
-title: "Computational Drug Discovery Part 5 (Part 2/3): Generative Models for De Novo Drug Design - Diffusion Models"
+title: "Computational Drug Discovery Part 5 (Subpart 2/3): Generative Models for De Novo Drug Design - Diffusion Models"
 date: 2025-10-18
 draft: false
 author: Saeed Mehrang
-summary: "From prediction to creation (Part 2/3): Understanding diffusion models for molecular generation, with detailed implementation of torsional diffusion for 3D conformation generation."
+summary: "From prediction to creation (Subpart 2/3): Understanding diffusion models for molecular generation, with detailed implementation of torsional diffusion for 3D conformation generation."
 tags: ["Computational Drug Discovery", "Generative Models", "Molecular Generation", "Deep Learning", "Denoising Diffusion"]
 series_order: 5
 series: ["Computational Drug Discovery"]
@@ -18,14 +18,14 @@ cover:
 | :--- | :--- |
 | **Estimated Reading Time** | 40-50 minutes |
 | **Technical Level** | Advanced (requires understanding of deep learning, basic chemistry) |
-| **Prerequisites** | [Part 1](../genai-vae-gan-diffusion/) on VAE/GAN recommended |
+| **Prerequisites** | [Subpart 1](../genai-vae-gan-diffusion/) on VAE/GAN recommended |
 
 
 ## 1. Introduction: The Generative Revolution
 
 ### 1.1 From Evaluation to Creation
 
-In [Part 1 of this mini-series](../genai-vae-gan-diffusion/), we explored how **Variational Autoencoders (VAEs)** and **Generative Adversarial Networks (GANs)** can generate molecules by learning continuous latent representations and adversarial training, respectively. These approaches opened the door to de novo molecular design.
+In [Subpart 1 of this mini-series](../genai-vae-gan-diffusion/), we explored how **Variational Autoencoders (VAEs)** and **Generative Adversarial Networks (GANs)** can generate molecules by learning continuous latent representations and adversarial training, respectively. These approaches opened the door to de novo molecular design.
 
 Now, we turn to **Diffusion Models**—the current state-of-the-art in generative modeling that has revolutionized both image generation (DALL-E 2, Stable Diffusion) and molecular design.
 
