@@ -1,5 +1,5 @@
 ---
-title: "Part 3: Alphafold2 Miniseries: Protein Structure Prediction "
+title: "Computational Drug Discovery Part 3: Alphafold2 - Protein Structure Prediction (Miniseries)"
 description: "An overview of the AlphaFold2 plus detailed elaboration of the building blocks and ideas introduced by AlphaFold2."
 ---
 

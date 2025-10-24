@@ -1,5 +1,5 @@
 ---
-title: "Segment Anything Model (SAM) V1"
+title: "Segment Anything Model Version 1 (Miniseries)"
 description: "Understanding the state-of-the-art segmentation model, Segment Anything Model (SAM) version 1, developed by Meta AI Research team."
 cover:
     # image: "computer-vision.png"

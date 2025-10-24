@@ -6,10 +6,10 @@ author: "Saeed Mehrang"
 tags: ["Computer Vision", "Deep Learning", "Object Detection", "Camouflaged Objects", "Biomedical Imaging", "Medical AI"]
 categories: ["Technical Analysis", "Research Review"]
 description: "A brief technical comparison of the five most advanced camouflaged object detection methods in 2025, including ZoomNeXt, HGINet, RAG-SEG, MoQT, and SPEGNet, with detailed analysis of their architectures."
+summary: "A brief technical comparison of the five most advanced camouflaged object detection methods in 2025, including ZoomNeXt, HGINet, RAG-SEG, MoQT, and SPEGNet, with detailed analysis of their architectures."
 cover:
-    image: "cod_cover.png"
-    alt: "Camouflaged Object Detection Methods"
-    caption: "Advanced COD techniques revolutionizing biomedical imaging"
+    image: "cover.png"
+    alt: "Camouflaged Objects"
 ShowToc: true
 TocOpen: true
 ---
