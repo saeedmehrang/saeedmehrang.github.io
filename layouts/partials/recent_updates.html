@@ -1,6 +1,6 @@
 {{- if .IsHome }}
 <div class="recent-updates-section" id="recent-updates-section" style="display: none;">
-  <h2 class="list-title-separator">Recent Updates</h2>
+  <h2 class="list-title-separator recent-updates-title">Recent Updates</h2>
 
   {{- $recentBlogs := where site.RegularPages "Type" "blogs" }}
   {{- $recentBlogs = sort $recentBlogs "Date" "desc" }}
