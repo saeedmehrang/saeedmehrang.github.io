@@ -1,9 +1,9 @@
 ---
 title: "Computational Drug Discovery Part 3 (Subpart 3/3): From Abstract Features to Atoms, AlphaFold2's Structure Module and Training"
 date: 2025-10-24
-draft: true
+draft: false
 author: Saeed Mehrang
-summary: "AlphaFold2's Structure Module uses Invariant Point Attention to convert abstract Evoformer predictions into 3D atomic coordinates through iterative refinement, while multi-objective loss functions guide training."
+summary: "AlphaFold2's Structure Module uses Invariant Point Attention to convert abstract Evoformer predictions into 3D atomic coordinates through iterative refinement, while multi-objective loss functions guide training - Subpart 3/3"
 description: "A detailed exploration of how AlphaFold2 converts Evoformer predictions into 3D coordinates using Invariant Point Attention, and the multi-objective loss functions that guide training"
 tags: ["AlphaFold2", "Protein Structure", "Deep Learning", "Invariant Point Attention", "Loss Functions"]
 categories: ["Computational Biology", "AI"]

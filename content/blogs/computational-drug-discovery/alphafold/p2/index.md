@@ -4,6 +4,7 @@ date: 2025-10-24
 draft: false
 author: Saeed Mehrang
 description: "A detailed mathematical breakdown of AlphaFold2's Evoformer block, explaining each operation with concrete matrix algebra and dimensions - Subpart 2/3"
+summary: "A detailed mathematical breakdown of AlphaFold2's Evoformer block, explaining each operation with concrete matrix algebra and dimensions - Subpart 2/3"
 tags: ["AlphaFold2", "Protein Structure", "Deep Learning", "Bioinformatics", "Machine Learning"]
 categories: ["Computational Biology", "AI"]
 math: true
