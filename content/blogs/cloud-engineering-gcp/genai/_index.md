@@ -1,5 +1,5 @@
 ---
-title: "GCP Architecture for Generative AI Applications"
+title: "GCP Architecture for Generative AI Applications (Series)"
 description: "A 6-part series on building production generative AI applications on GCP."
 cover:
     # image: "causal-cover.png"
