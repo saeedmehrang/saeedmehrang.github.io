@@ -45,11 +45,47 @@
 /* Custom CSS to increase spacing for the "Standalone Posts" title */
 .list-title-separator {
     /* Large space *above* the title to separate it from the previous grid */
-    margin-top: 3em; 
-    
+    margin-top: 3em;
+
     /* Moderate space *below* the title to separate it from the next grid */
-    margin-bottom: 2em; 
+    margin-bottom: 2em;
 
     /* Optional: Make them slightly bigger than default H2 */
     font-size: 1.1em;
+}
+
+/* Parent page button styling */
+.parent-page-button-container {
+    margin-top: 1.5em;
+    margin-bottom: 1em;
+}
+
+.parent-page-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.6em 1.2em;
+    background: var(--entry);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 0.95em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.parent-page-button:hover {
+    background: var(--tertiary);
+    border-color: var(--primary);
+    transform: translateX(-2px);
+}
+
+.parent-page-button svg {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.parent-page-button:hover svg {
+    transform: translateX(-3px);
 }
