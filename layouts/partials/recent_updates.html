@@ -38,6 +38,35 @@
 </div>
 
 <script>
+function smoothScrollTo(element, duration) {
+  // Get the absolute position of the element from the top of the document
+  const targetPosition = element.getBoundingClientRect().top + window.scrollY;
+  const startPosition = window.scrollY;
+  const distance = targetPosition - startPosition;
+  let startTime = null;
+
+  // Only scroll if we need to move (avoid unnecessary scrolling)
+  if (Math.abs(distance) < 1) return;
+
+  function animation(currentTime) {
+    if (startTime === null) startTime = currentTime;
+    const timeElapsed = currentTime - startTime;
+    const run = easeInOutQuad(timeElapsed, startPosition, distance, duration);
+    window.scrollTo(0, run);
+    if (timeElapsed < duration) requestAnimationFrame(animation);
+  }
+
+  // Easing function for smooth animation
+  function easeInOutQuad(t, b, c, d) {
+    t /= d / 2;
+    if (t < 1) return c / 2 * t * t + b;
+    t--;
+    return -c / 2 * (t * (t - 2) - 1) + b;
+  }
+
+  requestAnimationFrame(animation);
+}
+
 function toggleRecentUpdates() {
   const section = document.getElementById('recent-updates-section');
   const button = document.getElementById('recent-updates-toggle');
@@ -45,6 +74,12 @@ function toggleRecentUpdates() {
   if (section.style.display === 'none') {
     section.style.display = 'block';
     button.classList.add('active');
+
+    // Wait for the section to be fully rendered before scrolling
+    // This ensures position calculation is accurate and no jumping occurs
+    setTimeout(function() {
+      smoothScrollTo(section, 900); // 1200ms = 1.2 seconds for slower, smoother scroll
+    }, 50);
   } else {
     section.style.display = 'none';
     button.classList.remove('active');
