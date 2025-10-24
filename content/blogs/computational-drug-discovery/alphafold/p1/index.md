@@ -1,8 +1,9 @@
 ---
-title: "Computational Drug Discovery Part 3: AlphaFold and the Protein Structure Prediction Revolution"
+title: "Computational Drug Discovery Part 3 (Subpart 1/3): AlphaFold Overview"
 date: 2025-10-13
 draft: false
-summary: "How DeepMind's AlphaFold2 solved the 50-year grand challenge in biology -- the protein folding problem -- using transformers, evolutionary information, and geometric reasoning and what it means for drug discovery."
+author: Saeed Mehrang
+summary: "How DeepMind's AlphaFold2 solved the 50-year grand challenge in biology -- the protein folding problem -- using transformers, evolutionary information, and geometric reasoning and what it means for drug discovery - Subpart 1/3"
 tags: ["Computational Drug Discovery", "AlphaFold", "Deep Learning", "Protein Structure", "Transformers", "Machine Learning"]
 series_order: 3
 series: ["Computational Drug Discovery"]
@@ -18,6 +19,9 @@ cover:
 | **Estimated Reading Time** | 45-60 minutes |
 | **Technical Level** | Advanced (requires understanding of deep learning, basic chemistry) |
 | **Prerequisites** | [Blogs 1 and 2](../) in this series required |
+
+
+This is Subpart 1 of the background on AlphaFold2, in the next subparts, I take a deeper dive into the implementation and the code.
 
 
 ## 1. Introduction
