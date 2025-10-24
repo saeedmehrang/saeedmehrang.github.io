@@ -1,5 +1,5 @@
 {{- if .IsHome }}
-<div class="recent-updates-section">
+<div class="recent-updates-section" id="recent-updates-section" style="display: none;">
   <h2 class="list-title-separator">Recent Updates</h2>
 
   {{- $recentBlogs := where site.RegularPages "Type" "blogs" }}
@@ -9,7 +9,7 @@
   {{- if $recentBlogs }}
   <div class="blog-grid">
     {{- range $recentBlogs }}
-    <article class="post-entry">
+    <article class="post-entry recent-update-card">
       {{- $isHidden := (.Param "cover.hiddenInList") | default (.Param "cover.hidden") | default false }}
       {{- partial "cover.html" (dict "cxt" . "IsSingle" false "isHidden" $isHidden) }}
       <header class="entry-header">
@@ -25,11 +25,6 @@
           {{- end }}
         </h2>
       </header>
-      {{- if (ne (.Param "hideSummary") true) }}
-      <div class="entry-content">
-        <p>{{ .Summary | plainify | htmlUnescape }}{{ if .Truncated }}...{{ end }}</p>
-      </div>
-      {{- end }}
       {{- if not (.Param "hideMeta") }}
       <footer class="entry-footer">
         {{- partial "post_meta.html" . -}}
@@ -41,4 +36,19 @@
   </div>
   {{- end }}
 </div>
+
+<script>
+function toggleRecentUpdates() {
+  const section = document.getElementById('recent-updates-section');
+  const button = document.getElementById('recent-updates-toggle');
+
+  if (section.style.display === 'none') {
+    section.style.display = 'block';
+    button.classList.add('active');
+  } else {
+    section.style.display = 'none';
+    button.classList.remove('active');
+  }
+}
+</script>
 {{- end }}

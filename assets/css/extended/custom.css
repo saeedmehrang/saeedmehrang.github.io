@@ -89,3 +89,63 @@
 .parent-page-button:hover svg {
     transform: translateX(-3px);
 }
+
+/* Recent Updates toggle button styling - sky blue background */
+.recent-updates-toggle {
+    background: linear-gradient(135deg, #bae5fa 0%, #a6ddfd 100%) !important;
+    
+    border: 1px solid #75c8fb !important;
+    
+    color: #0e1b20 !important;
+}
+
+.recent-updates-toggle:hover {
+    background: linear-gradient(135deg, #a7defe 0%, #8ccef7 100%) !important;
+    
+    transform: translateY(-2px);
+
+    box-shadow: 0 4px 8px rgba(168, 222, 255, 0.3);
+}
+
+.recent-updates-toggle.active {
+    background: linear-gradient(135deg, #A8DEFF 0%, #8AD0FF 100%) !important;
+    
+    box-shadow: 0 2px 4px rgba(168, 222, 255, 0.4) inset;
+}
+
+/* Recent Updates section styling */
+.recent-updates-section {
+    margin-top: 3em;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Compact card styling for Recent Updates - no summary, just title and cover */
+.recent-update-card .entry-content {
+    display: none;
+}
+
+.recent-update-card .entry-header {
+    padding: 0.5em 0;
+}
+
+.recent-update-card .entry-header h2 {
+    font-size: 0.95em;
+    line-height: 1.3;
+}
+
+.recent-update-card .entry-footer {
+    margin-top: auto;
+    padding-top: 0.5em;
+    font-size: 0.85em;
+}
