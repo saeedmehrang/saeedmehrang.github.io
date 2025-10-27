@@ -6,8 +6,8 @@ author: "Saeed Mehrang"
 description: "A deep dive into Key-Value caching in transformer models - the critical optimization that transforms O(n²) autoregressive generation into O(n), enabling real-time LLM inference at scale."
 summary: "Learn how KV-caching makes ChatGPT respond in seconds instead of minutes. This comprehensive guide explains the quadratic complexity problem in transformers, how caching Keys and Values solves it with 10-100x speedups, and the memory trade-offs - complete with full PyTorch implementations, benchmarks, and interactive visualizations."
 cover:
-    image: "kv-caching-viz.png"
-    alt: "Visual comparison of generation with and without KV-caching showing complexity reduction from O(n²) to O(n)"
+    image: "cover.svg"
+    alt: "KV Caching Simply"
     relative: true
 showToc: true
 disableAnchoredHeadings: false
@@ -20,6 +20,15 @@ If you've ever wondered how ChatGPT, Gemini, or Claude generate responses so qui
 In this post, we'll dive deep into what KV-caching is, why it's necessary, and how it's implemented in transformer-based language models.
 
 For a simple but complete python implementation in PyTorch, please see [this python script](https://github.com/saeedmehrang/llm-learning/blob/main/kv_caching.py) in my GitHub.
+
+
+See the process in the diagram below,
+
+
+{{< framed_image src="cover.svg" alt="KV Caching Simplified" width="900px" height="900px" >}}
+{{< /framed_image >}}
+
+
 
 ## The Problem: Quadratic Complexity in Autoregressive Generation
 
