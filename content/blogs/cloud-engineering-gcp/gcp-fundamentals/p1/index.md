@@ -37,7 +37,7 @@ This first part explores foundational GCP concepts:
 - Identity and Access Management (IAM)
 - Ways to interact with GCP
 
-*Part 2 will cover technical implementations: Virtual Machines, Networks, Storage, Containers, and Applications.*
+*Part 2 will cover Virtual Machines and Networks, Part 3 will cover Storage, and finally Part 4 will cover Containers and Applications.*
 
 ---
 
