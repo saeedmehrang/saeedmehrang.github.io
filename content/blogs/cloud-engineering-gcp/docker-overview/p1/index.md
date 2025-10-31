@@ -9,7 +9,17 @@ tags: ["docker", "containers", "devops", "cloud-engineering", "virtualization"]
 categories: ["Docker Tutorial Series"]
 series: ["Docker & Docker Compose Miniseries"]
 weight: 1
+ShowToc: true
+TocOpen: true
+math: true
 ---
+
+| Characteristic | Detail |
+| :--- | :--- |
+| **Estimated Reading Time** | 10-12 minutes |
+| **Technical Level** | Beginner |
+| **Prerequisites** | Basic command-line knowledge |
+
 
 This is the first part out of 6 in this miniseries. See the table below for the topics that are covered.
 
