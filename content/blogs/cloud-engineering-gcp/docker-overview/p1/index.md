@@ -20,6 +20,7 @@ math: true
 | **Technical Level** | Beginner |
 | **Prerequisites** | Basic command-line knowledge |
 
+---
 
 This is the first part out of 6 in this miniseries. See the table below for the topics that are covered.
 
@@ -440,8 +441,6 @@ In the next blog, we'll dive deeper into creating your own Docker images using D
 
 ---
 
-**Next in Series**: [Building Your First Docker Image](#) - Learn to create custom Docker images with Dockerfiles, understand layering, and implement multi-stage builds.
-
 **Series Navigation**:
 - **Part 1: Docker Fundamentals** (You are here)
 - Part 2: Building Your First Docker Image
@@ -449,3 +448,6 @@ In the next blog, we'll dive deeper into creating your own Docker images using D
 - Part 4: Docker Compose Essentials
 - Part 5: Advanced Compose: Dependencies & Environment Management
 - Part 6: Docker Best Practices & Optimization
+
+
+**Next in Series**: [Building Your First Docker Image](../p2) - Learn to create custom Docker images with Dockerfiles, understand layering, and implement multi-stage builds.
