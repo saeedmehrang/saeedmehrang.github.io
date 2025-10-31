@@ -19,7 +19,7 @@ cover:
 
 | Characteristic | Detail |
 | :--- | :--- |
-| **Estimated Reading Time** | 20-30 minutes |
+| **Estimated Reading Time** | 30-45 minutes |
 | **Technical Level** | Beginner |
 | **Prerequisites** | Basic command-line knowledge, Docker installed |
 
