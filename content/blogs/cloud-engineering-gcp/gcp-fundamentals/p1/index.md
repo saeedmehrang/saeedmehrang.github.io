@@ -10,6 +10,8 @@ categories: ["Cloud", "Tutorial"]
 series_order: 1
 showToc: true
 disableAnchoredHeadings: false
+cover:
+    image: /blogs/cloud-engineering-gcp/gcp-fundamentals/Google_Cloud_logo.svg
 ---
 
 

@@ -10,6 +10,8 @@ categories: ["Cloud", "Tutorial"]
 series_order: 3
 showToc: true
 disableAnchoredHeadings: false
+cover:
+    image: /blogs/cloud-engineering-gcp/gcp-fundamentals/Google_Cloud_logo.svg
 ---
 
 > **Course:** Google Cloud Fundamentals: Core Infrastructure | Google Cloud Skills Boost https://www.cloudskillsboost.google 
