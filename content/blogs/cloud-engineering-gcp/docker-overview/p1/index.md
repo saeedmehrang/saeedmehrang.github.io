@@ -12,6 +12,8 @@ weight: 1
 ShowToc: true
 TocOpen: true
 math: true
+cover:
+    image: /blogs/cloud-engineering-gcp/docker-overview/docker.svg
 ---
 
 | Characteristic | Detail |
