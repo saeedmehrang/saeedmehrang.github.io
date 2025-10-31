@@ -1,6 +1,6 @@
 ---
 title: "Building Your First Docker Image (part 2 of 6)"
-date: 2024-10-31
+date: 2025-10-31
 draft: false
 description: "Learn how to build custom Docker images using Dockerfiles. Master essential instructions like FROM, RUN, and CMD, understand image layering for efficiency, and explore multi-stage builds."
 summary: "This article dives into the heart of Docker: the Image. We'll cover the Dockerfile structure, key commands, the concept of image layers and caching, and practical techniques to optimize your image size and build speed."
