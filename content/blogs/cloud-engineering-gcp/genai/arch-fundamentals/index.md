@@ -149,31 +149,15 @@ GCP offers several advantages for GenAI applications:
 
 Instead of thinking about individual services, organize your architecture into five functional layers:
 
-**1. Model Serving Layer** - Where inference happens
-- Hosts your models (proprietary or open-source)
-- Handles prediction requests
-- Manages model versions and traffic splitting
 
-**2. API & Gateway Layer** - How users interact with your system
-- Authentication and authorization
-- Rate limiting and quota management
-- Load balancing across backend services
+| Component Layer | Primary Function | Key Responsibilities/Features |
+| :--- | :--- | :--- |
+| **1. Model Serving Layer** | Where **inference happens** | Hosts models (proprietary or open-source), Handles **prediction requests**, Manages model versions and **traffic splitting** |
+| **2. API & Gateway Layer** | How **users interact** with your system | **Authentication and authorization**, **Rate limiting** and quota management, Load balancing across backend services |
+| **3. Storage & Data Layer** | Where **knowledge lives** | **Vector databases** for semantic search, **Feature stores** for real-time features, Caches for **performance optimization**, **Long-term storage** for training data |
+| **4. Orchestration & Processing Layer** | How **components communicate** | **Event-driven workflows**, **Data preprocessing pipelines**, **Asynchronous task management** |
+| **5. Observability & Governance Layer** | How you **monitor and control** | **Metrics and alerting**, **Distributed tracing**, **Security and compliance** |
 
-**3. Storage & Data Layer** - Where knowledge lives
-- Vector databases for semantic search
-- Feature stores for real-time features
-- Caches for performance optimization
-- Long-term storage for training data
-
-**4. Orchestration & Processing Layer** - How components communicate
-- Event-driven workflows
-- Data preprocessing pipelines
-- Asynchronous task management
-
-**5. Observability & Governance Layer** - How you monitor and control
-- Metrics and alerting
-- Distributed tracing
-- Security and compliance
 
 ### Decomposing Requirements
 
@@ -213,187 +197,54 @@ Most production architectures prioritize inference flow since it directly impact
 
 ### Layer 1: Model Serving
 
-#### Vertex AI Prediction
-**Best for:** Google's foundation models, managed infrastructure, integrated MLOps
 
-**Key Features:**
-- Auto-scaling based on traffic
-- Built-in A/B testing and traffic splitting
-- Native integration with Vertex AI training jobs
-- Managed endpoints with SLA guarantees
+| Platform | Best For | Key Features | When to Use |
+| :--- | :--- | :--- | :--- |
+| **Vertex AI Prediction** | **Google's foundation models**, **managed infrastructure**, **integrated MLOps** | Auto-scaling based on traffic, Built-in A/B testing and traffic splitting, Native integration with Vertex AI training jobs, Managed endpoints with **SLA guarantees** | Deploying **Gemini**, **PaLM**, or other Google models, Need for **enterprise support and SLAs**, Teams without DevOps expertise, Models trained within Vertex AI ecosystem |
+| **Cloud Run + Custom Frameworks (vLLM, TGI)** | **Open-source models**, **custom serving logic**, **cost optimization** | **Full control** over serving environment, Support for any containerized framework, **Scales to zero** for cost savings, Custom pre/post-processing pipelines | Deploying **Llama**, **Mistral**, or other **OSS models**, Need custom inference optimizations (vLLM), Complex preprocessing requirements, **Cost-sensitive workloads** with variable traffic |
+| **GKE (Google Kubernetes Engine)** | **Multi-model serving**, **complex orchestration**, **fine-grained control** | | Serving **multiple models** with shared resources, Need for **advanced networking configurations**, **Existing Kubernetes expertise** in team, Complex multi-stage inference pipelines |
 
-**When to use:**
-- Deploying Gemini, PaLM, or other Google models
-- Need for enterprise support and SLAs
-- Teams without DevOps expertise
-- Models trained within Vertex AI ecosystem
-
-#### Cloud Run + Custom Frameworks (vLLM, TGI)
-**Best for:** Open-source models, custom serving logic, cost optimization
-
-**Key Features:**
-- Full control over serving environment
-- Support for any containerized framework
-- Scales to zero for cost savings
-- Custom pre/post-processing pipelines
-
-**When to use:**
-- Deploying Llama, Mistral, or other OSS models
-- Need custom inference optimizations (vLLM)
-- Complex preprocessing requirements
-- Cost-sensitive workloads with variable traffic
-
-#### GKE (Google Kubernetes Engine)
-**Best for:** Multi-model serving, complex orchestration, fine-grained control
-
-**When to use:**
-- Serving multiple models with shared resources
-- Need for advanced networking configurations
-- Existing Kubernetes expertise in team
-- Complex multi-stage inference pipelines
 
 ### Layer 2: API & Gateway
 
-#### Cloud Endpoints
-**Best for:** RESTful APIs, OpenAPI specs, Google Cloud-native apps
 
-**Key Features:**
-- API key and JWT authentication
-- Request validation against OpenAPI specs
-- Built-in monitoring and logging
+| Platform/Service | Best For/Purpose | Key Features/Types |
+| :--- | :--- | :--- |
+| **Cloud Endpoints** | **RESTful APIs**, **OpenAPI specs**, Google Cloud-native apps | **API key and JWT authentication**, Request validation against OpenAPI specs, Built-in monitoring and logging |
+| **Apigee** | **Enterprise API management**, **multi-cloud**, **complex policies** | **Advanced rate limiting and quotas**, API monetization capabilities, Developer portal and analytics, Multi-cloud and hybrid support |
+| **Cloud Load Balancing** | **Distribute traffic**, **health checking**, **SSL termination** | **Global HTTPS LB** (For global applications), **Regional LB** (For region-specific workloads), **Internal LB** (For service-to-service communication) |
 
-#### Apigee
-**Best for:** Enterprise API management, multi-cloud, complex policies
-
-**Key Features:**
-- Advanced rate limiting and quotas
-- API monetization capabilities
-- Developer portal and analytics
-- Multi-cloud and hybrid support
-
-#### Cloud Load Balancing
-**Purpose:** Distribute traffic, health checking, SSL termination
-
-**Types:**
-- **Global HTTPS LB:** For global applications
-- **Regional LB:** For region-specific workloads
-- **Internal LB:** For service-to-service communication
 
 ### Layer 3: Storage & Data
 
-#### Vertex AI Vector Search
-**Purpose:** Semantic search for RAG applications
-
-**Key Features:**
-- Managed approximate nearest neighbor search
-- Supports multiple distance metrics (cosine, dot product, L2)
-- Streaming updates for real-time indexing
-- Auto-scaling with configurable replicas
-
-**Configuration:**
-- `min_replica_count`: Keep index "warm" (recommend ≥2)
-- `machine_type`: Balance cost vs QPS capacity
-- `distance_measure_type`: Match your embedding model
-
-#### Memorystore (Redis)
-**Purpose:** Caching layer for query results and session data
-
-**Key Use Cases:**
-- Cache frequent vector search results
-- Store user conversation history
-- Session management
-
-**Configuration Strategy:**
-- Set eviction policy: `allkeys-lru` for caching
-- Define TTLs based on data freshness needs (e.g., 3600s)
-- Vertical scaling before horizontal (simpler operations)
-
-#### Cloud Storage (GCS)
-**Purpose:** Object storage for model artifacts, datasets, documents
-
-**Best Practices:**
-- Use lifecycle policies for cost management
-- Enable versioning for model artifacts
-- Organize by project/environment (dev/staging/prod)
-
-#### BigQuery
-**Purpose:** Data warehouse for analytics, training data, logs
-
-**Key Use Cases:**
-- Store and query large-scale training datasets
-- Long-term log retention and analysis
-- Feature engineering for ML models
-
-#### Firestore / Cloud SQL
-**Purpose:** Operational databases for application state
-
-**When to use:**
-- Firestore: Document-based data, real-time sync
-- Cloud SQL: Relational data, complex queries
+| Platform/Service | Purpose | Key Features/Use Cases/Configuration |
+| :--- | :--- | :--- |
+| **Vertex AI Vector Search** | **Semantic search for RAG applications** | Managed **approximate nearest neighbor search**, Supports multiple distance metrics (cosine, dot product, L2), **Streaming updates** for real-time indexing, Auto-scaling with configurable replicas |
+| | | *Configuration:* `min_replica_count` (Keep index "warm", recommend $\ge$2), `machine_type` (Balance cost vs QPS capacity), `distance_measure_type` (Match your embedding model) |
+| **Memorystore (Redis)** | **Caching layer for query results and session data** | *Key Use Cases:* Cache frequent vector search results, Store user conversation history, Session management |
+| | | *Configuration Strategy:* Set eviction policy: `allkeys-lru` for caching, Define TTLs based on data freshness needs (e.g., 3600s), Vertical scaling before horizontal (simpler operations) |
+| **Cloud Storage (GCS)** | **Object storage for model artifacts, datasets, documents** | *Best Practices:* Use **lifecycle policies** for cost management, Enable **versioning** for model artifacts, Organize by project/environment (dev/staging/prod) |
+| **BigQuery** | **Data warehouse for analytics, training data, logs** | *Key Use Cases:* Store and query large-scale training datasets, **Long-term log retention and analysis**, Feature engineering for ML models |
+| **Firestore / Cloud SQL** | **Operational databases for application state** | *When to use:* <br> **Firestore**: Document-based data, **real-time sync**; <br> **Cloud SQL**: **Relational data**, complex queries |
 
 ### Layer 4: Orchestration & Processing
 
-#### Vertex AI Pipelines
-**Purpose:** MLOps workflows (training, evaluation, deployment)
+| Platform/Service | Purpose | Key Features/Common Patterns/Use Cases |
+| :--- | :--- | :--- |
+| **Vertex AI Pipelines** | **MLOps workflows** (training, evaluation, deployment) | Kubeflow Pipelines or TFX under the hood, Component reusability, **Experiment tracking and lineage** |
+| **Cloud Functions / Cloud Run** | **Event-driven processing**, **lightweight orchestration** | *Common Patterns:* Document preprocessing on upload, **Webhook handlers**, Scheduled tasks (with Cloud Scheduler), **Fastapi for building APIs** |
+| **Pub/Sub** | **Asynchronous messaging between services** | *Use Cases:* **Decouple preprocessing from inference**, **Fan-out patterns** for parallel processing, **Event streaming** for analytics |
 
-**Key Features:**
-- Kubeflow Pipelines or TFX under the hood
-- Component reusability
-- Experiment tracking and lineage
-
-#### Cloud Functions / Cloud Run
-**Purpose:** Event-driven processing, lightweight orchestration
-
-**Common Patterns:**
-- Document preprocessing on upload
-- Webhook handlers
-- Scheduled tasks (with Cloud Scheduler)
-- Fastapi for building APIs
-
-#### Pub/Sub
-**Purpose:** Asynchronous messaging between services
-
-**Use Cases:**
-- Decouple preprocessing from inference
-- Fan-out patterns for parallel processing
-- Event streaming for analytics
 
 ### Layer 5: Observability & Governance
 
-#### Cloud Monitoring
-**Metrics to track:**
-- Model latency (p50, p95, p99)
-- Request rate and error rate
-- Token usage and costs
-- Vector search QPS
-
-#### Cloud Logging
-**What to log:**
-- Prediction requests and responses
-- Model versions used
-- Error traces
-- User interactions (for compliance)
-
-**Best Practice:** Export logs to BigQuery for long-term analysis
-
-#### Cloud Trace
-**Purpose:** Distributed tracing across services
-
-**Value:** Identify bottlenecks in multi-service request paths
-
-#### Vertex AI Model Monitoring
-**Features:**
-- Prediction drift detection
-- Training-serving skew monitoring
-- Feature attribution analysis
-
-#### Cloud DLP API
-**Purpose:** Detect and redact PII
-
-**Key Capabilities:**
-- 150+ built-in info type detectors (SSN, credit cards, emails)
-- Custom info type definitions
-- Automatic redaction or masking
+| Platform/Service | Purpose/Metrics | Key Features/Best Practices/Value |
+| :--- | :--- | :--- |
+| **Cloud Monitoring** | **Metrics to track:** Model latency (**p50, p95, p99**), Request rate and error rate, **Token usage and costs**, Vector search QPS | |
+| **Cloud Logging** | **What to log:** Prediction requests and responses, **Model versions used**, Error traces, User interactions (for compliance) | *Best Practice:* Export logs to **BigQuery** for long-term analysis |
+| **Cloud Trace** | **Distributed tracing** across services | *Value:* Identify **bottlenecks** in multi-service request paths |
+| **Vertex AI Model Monitoring** | | **Prediction drift detection**, **Training-serving skew** monitoring, Feature attribution analysis |
+| **Cloud DLP API** | **Detect and redact PII** | **150+ built-in info type detectors** (SSN, credit cards, emails), Custom info type definitions, Automatic **redaction or masking** |
 
 ---
 
@@ -531,112 +382,43 @@ For unpredictable spikes, monitor key metrics:
 ---
 
 ## 6. Cost Optimization Playbook
+This section can be made significantly more efficient and easier to read by using a **two-part table structure**: one for the **Cost Drivers** and another, larger table for **Optimization Strategies by Component**. This approach makes excellent use of horizontal space and clearly organizes the content.
 
-### Understanding Cost Drivers
+### Cost Optimization Playbook
 
-GenAI applications have distinct cost profiles:
+---
 
-1. **Model serving compute** (40-60% of total cost)
-   - GPU instances are expensive ($1-5/hour per GPU)
-   - Scales with traffic and model size
+### Cost Drivers (Summary Table)
 
-2. **Vector search** (15-25%)
-   - Scales with index size and QPS
-   - Machine type selection impacts cost significantly
+| Cost Driver | Typical Percentage | Key Scaling Factors |
+| :--- | :--- | :--- |
+| **Model serving compute** | 40-60% | Traffic and model size |
+| **Vector search** | 15-25% | Index size and QPS |
+| **Data storage** | 10-15% | Model/dataset volume, BigQuery usage |
+| **Networking** | 5-10% | Cross-region egress, inter-service API calls |
+| **Logging and monitoring** | 5-10% | Log ingestion and retention, custom metrics |
 
-3. **Data storage** (10-15%)
-   - GCS for models and datasets
-   - BigQuery for analytics
 
-4. **Networking** (5-10%)
-   - Egress charges for cross-region traffic
-   - API calls between services
+### Optimization Strategies by Component (Detailed Table)
 
-5. **Logging and monitoring** (5-10%)
-   - Log ingestion and retention
-   - Custom metrics
+| Component | Strategy | Details/Goal |
+| :--- | :--- | :--- |
+| **Model Serving** | **Right-size instances** | Profile GPU utilization; use smallest instance meeting latency SLAs; consider **CPU-only** for smaller models. |
+| | **Batch prediction** | Group multiple requests for higher throughput; trade latency for cost (ideal for offline use cases). |
+| | **Model optimization** | Apply **Quantization** (FP16, INT8); use **Distillation** for smaller models; leverage efficient architectures (e.g., vLLM). |
+| | **Scale-to-zero** | Use **Cloud Run** for automatic scaling to zero in non-production (**dev/staging**) environments for significant savings. |
+| **Vector Search** | **Index optimization** | Scale machine type based on actual QPS needs; adjust `min_replica_count`; use smaller machine types for development. |
+| | **Approximate vs exact search** | Use **Approximate Nearest Neighbor (ANN)** for most queries; reserve exact search for critical use cases. |
+| | **Index segmentation** | Separate indices by use case to allow independent scaling based on traffic. |
+| **Storage** | **Lifecycle policies** | Move old data to **Nearline/Coldline** storage; delete temporary files; archive logs after retention period. |
+| | **Compression** | Compress datasets/models in GCS; use **Parquet/Avro** instead of CSV for large datasets. |
+| | **Query optimization (BigQuery)** | **Partition tables** by date; **cluster tables** on frequently queried columns; use BigQuery slots efficiently. |
+| **Caching** | **Aggressive caching with Redis** | Cache vector search results (can save **50-80%** of searches). Set appropriate TTLs; monitor cache hit rates. |
+| | | *Example Savings:* Vector search query: $0.001 vs. Redis cache read: $0.00001. **80% cache hit rate = 80% cost reduction** on searches. |
+| **Logging** | **Log sampling** | Sample prediction logs (e.g., **10% in production**); log all errors/anomalies; full logging only in development. |
+| | **Structured logging** | Use **JSON** for efficient querying; avoid duplicate info; export only necessary fields to BigQuery. |
+| | **Retention policies** | Keep detailed logs for $\approx$30 days; aggregate metrics for longer retention; archive compliance logs to Cold storage. |
 
-### Optimization Strategies by Component
-
-#### Model Serving
-
-**Strategy 1: Right-size your instances**
-- Profile actual GPU utilization
-- Use smallest instance that meets latency SLAs
-- Consider CPU-only for smaller models
-
-**Strategy 2: Batch prediction when possible**
-- Group multiple requests for higher throughput
-- Trade latency for cost (offline use cases)
-
-**Strategy 3: Model optimization**
-- Quantization (FP16, INT8) reduces memory and compute
-- Distillation for smaller models with comparable performance
-- Use efficient architectures (e.g., vLLM for LLMs)
-
-**Strategy 4: Scale-to-zero for dev/staging**
-- Cloud Run scales to zero automatically
-- Significant savings for non-production environments
-
-#### Vector Search
-
-**Strategy 1: Index optimization**
-- Use smaller machine types for development
-- Scale machine type based on actual QPS needs
-- Monitor and adjust `min_replica_count`
-
-**Strategy 2: Approximate vs exact search**
-- Use approximate nearest neighbor (ANN) for most queries
-- Reserve exact search for critical use cases
-
-**Strategy 3: Index segmentation**
-- Separate indices for different use cases
-- Scale independently based on traffic
-
-#### Storage
-
-**Strategy 1: Lifecycle policies**
-- Move old data to Nearline/Coldline storage
-- Delete temporary files automatically
-- Archive logs after retention period
-
-**Strategy 2: Compression**
-- Compress datasets and models in GCS
-- Use Parquet/Avro instead of CSV for large datasets
-
-**Strategy 3: Query optimization**
-- Partition BigQuery tables by date
-- Cluster tables on frequently queried columns
-- Use BigQuery slots efficiently
-
-#### Caching
-
-**Strategy: Aggressive caching with Redis**
-- Cache vector search results (can save 50-80% of searches)
-- Set appropriate TTLs based on data freshness requirements
-- Monitor cache hit rates and adjust strategy
-
-**Example savings:**
-- Vector search query: $0.001
-- Redis cache read: $0.00001
-- 80% cache hit rate = 80% cost reduction on searches
-
-#### Logging
-
-**Strategy 1: Log sampling**
-- Sample prediction logs (e.g., 10% in production)
-- Log all errors and anomalies
-- Full logging only in development
-
-**Strategy 2: Structured logging**
-- Use JSON for efficient querying
-- Avoid duplicate information
-- Export only necessary fields to BigQuery
-
-**Strategy 3: Retention policies**
-- Keep detailed logs for 30 days
-- Aggregate metrics for longer retention
-- Archive compliance logs to Cold storage
 
 ### Cost vs Performance Trade-offs
 
@@ -699,42 +481,24 @@ Model Output → Cloud DLP (detect) → Redaction Logic → User
 
 ### Monitoring & Observability
 
-#### What to Monitor
 
-**Infrastructure metrics:**
-- Instance count and utilization
-- Request latency (p50, p95, p99)
-- Error rates by type
-- Network throughput
+### What to Monitor
 
-**Model metrics:**
-- Prediction latency
-- Token usage (for LLMs)
-- Model version distribution
-- Drift detection alerts
+| Category | Key Metrics to Track |
+| :--- | :--- |
+| **Infrastructure metrics** | **Instance count and utilization**, Request latency (**p50, p95, p99**), Error rates by type, Network throughput |
+| **Model metrics** | Prediction latency, **Token usage** (for LLMs), Model version distribution, **Drift detection alerts** |
+| **Business metrics** | **Cost per prediction**, User satisfaction scores, Feature usage patterns, **Conversion rates** |
 
-**Business metrics:**
-- Cost per prediction
-- User satisfaction scores
-- Feature usage patterns
-- Conversion rates
 
-#### Alert Strategy
+### Alert Strategy
 
-**Critical alerts (immediate response):**
-- Error rate >5% for >5 minutes
-- p99 latency >10 seconds
-- Service unavailability
+| Alert Level | Trigger Condition | Required Response |
+| :--- | :--- | :--- |
+| **Critical alerts** | **Error rate >5% for >5 minutes**, **p99 latency >10 seconds**, Service unavailability | **Immediate response** |
+| **Warning alerts** | **Cost spike >50%** vs baseline, Cache hit rate drop >20%, GPU utilization **<30% (waste)** or **>90% (saturation)** | Investigate within hours |
+| **Info alerts** | **Model drift detection**, Unusual traffic patterns, Capacity planning thresholds | Review daily/weekly |
 
-**Warning alerts (investigate within hours):**
-- Cost spike >50% vs baseline
-- Cache hit rate drop >20%
-- GPU utilization <30% (waste) or >90% (saturation)
-
-**Info alerts (review daily/weekly):**
-- Model drift detection
-- Unusual traffic patterns
-- Capacity planning thresholds
 
 ### Measuring Architecture Health
 
@@ -748,83 +512,46 @@ Once your GenAI application is running in production, how do you know if your ar
 | **Cloud Asset Inventory** | Resource compliance, organizational policies | Tracks all resources and checks policy compliance | ✅ Automated inventory + compliance |
 | **Architecture Framework Assessment** | Operational excellence, reliability, performance, cost, security | Comprehensive well-architected review (manual questionnaire) | ⚠️ Manual but structured |
 
+
+---
+
+
 ### Common Pitfalls to Avoid
+
 
 #### Architecture Anti-patterns
 
-**1. Over-engineering for scale**
-- Don't start with GKE if Cloud Run suffices
-- Avoid distributed systems complexity until necessary
-- Start simple, scale when needed
+| Anti-pattern | Description/Impact | Mitigation/Best Practice |
+| :--- | :--- | :--- |
+| **1. Over-engineering for scale** | Introduces unnecessary complexity (e.g., starting with GKE when Cloud Run is enough). | Start **simple** (e.g., Cloud Run), scale when necessary, avoid distributed systems complexity until required. |
+| **2. Under-investing in monitoring** | Leads to inability to optimize or troubleshoot scaling issues. | Set up monitoring **before** scaling issues arise; include **cost monitoring** from day one. |
+| **3. Ignoring cold starts** | Destroys user experience due to slow initial responses. | Configure **`min-instances`** for production; pre-warm services before known traffic spikes. |
+| **4. Insufficient caching** | Results in high costs from expensive, repetitive vector searches. | **Cache aggressively** (e.g., with Redis) using appropriate TTLs. |
+| **5. Logging everything** | Full prediction logging is expensive and slows down analysis. | Use **sampling** in production; focus logging on **errors and anomalies**. |
 
-**2. Under-investing in monitoring**
-- Can't optimize what you don't measure
-- Set up monitoring before scaling issues arise
-- Include cost monitoring from day one
 
-**3. Ignoring cold starts**
-- Cold starts destroy user experience
-- Always configure min-instances for production
-- Pre-warm before known traffic spikes
-
-**4. Insufficient caching**
-- Vector searches are expensive
-- Many queries are repetitive
-- Cache aggressively with appropriate TTLs
-
-**5. Logging everything**
-- Full prediction logging is expensive
-- Use sampling in production
-- Focus on errors and anomalies
 
 #### Operational Pitfalls
 
-**1. No rollback strategy**
-- Always deploy with traffic splitting
-- Keep previous model versions available
-- Test rollback procedures regularly
+| Pitfall | Description/Impact | Mitigation/Best Practice |
+| :--- | :--- | :--- |
+| **1. No rollback strategy** | Makes recovery from bad deployments slow or impossible. | Always deploy with **traffic splitting**; keep previous model versions available; test **rollback procedures** regularly. |
+| **2. Lack of reproducibility** | Prevents auditing or recreating specific model results. | **Version all model artifacts**; track training data and hyperparameters; use **Vertex AI Model Registry**. |
+| **3. Manual configuration management** | Prone to human error, slow, and lacks audit trail. | Use **Infrastructure as Code** (Terraform); version control all configurations; automate deployments. |
+| **4. Ignoring model drift** | Leads to stale models and degrading performance over time. | Set up **Vertex AI Model Monitoring**; define acceptable performance ranges; establish retraining triggers. |
+| **5. Poor error handling** | Causes hard failures and a poor user experience. | Implement **graceful degradation**; return meaningful error messages; log failures for analysis. |
 
-**2. Lack of reproducibility**
-- Version all model artifacts
-- Track training data and hyperparameters
-- Use Vertex AI Model Registry
 
-**3. Manual configuration management**
-- Use Infrastructure as Code (Terraform, Cloud Deployment Manager)
-- Version control all configurations
-- Automate deployments
 
-**4. Ignoring model drift**
-- Set up Vertex AI Model Monitoring
-- Define acceptable performance ranges
-- Establish retraining triggers
+#### Testing Strategy
 
-**5. Poor error handling**
-- Implement graceful degradation
-- Return meaningful error messages
-- Log failures for analysis
+| Test Type | Primary Goal | Key Activities/Scope |
+| :--- | :--- | :--- |
+| **Unit tests** | Validate individual components in isolation. | Test input/output contracts; **Mock external dependencies**. |
+| **Integration tests** | Validate service interactions and end-to-end flows. | Test service interactions; Validate end-to-end request flows; Use **staging environment**. |
+| **Load tests** | Verify performance and autoscaling under stress. | Simulate expected **peak traffic**; Test autoscaling behavior; Identify bottlenecks. |
+| **Chaos engineering** | Test system resilience against failures. | Test failure scenarios (service outages); Validate **fallback mechanisms**; Ensure graceful degradation. |
 
-### Testing Strategy
-
-**Unit tests:**
-- Test individual components in isolation
-- Mock external dependencies
-- Validate input/output contracts
-
-**Integration tests:**
-- Test service interactions
-- Validate end-to-end request flows
-- Use staging environment
-
-**Load tests:**
-- Simulate expected peak traffic
-- Test autoscaling behavior
-- Identify bottlenecks before production
-
-**Chaos engineering:**
-- Test failure scenarios (service outages)
-- Validate fallback mechanisms
-- Ensure graceful degradation
 
 ---
 
