@@ -113,7 +113,7 @@ graph TD
 1. **State Management**: Define the graph state with messages and metadata
 2. **Vector Store**: Use Chroma (open-source) for document embeddings
 3. **Embedding Model**: Use open-source models via Ollama
-4. **LLM**: Use Ollama for local, free inference
+4. **LLM**: Use Gemini
 5. **Retriever Node**: Fetch relevant documents from vector store
 6. **Grader Node**: Evaluate document relevance
 7. **Rewriter Node**: Reformulate queries for better retrieval
@@ -127,56 +127,36 @@ graph TD
 
 ### System Requirements
 
-- **Python**: 3.10 or higher
-- **RAM**: Minimum 8GB (16GB recommended for larger models)
-- **Storage**: 10GB+ for models and data
+- **Python**: 3.13 or higher
+- **RAM**: Minimum 4GB
+- **Storage**: 0.1GB+ for document and code storage data
 - **OS**: Windows, macOS, or Linux
 
 ### Installation Steps
 
 ```bash
-# 1. Install Ollama (for local LLMs)
-# Visit https://ollama.com/download and install for your OS
-# Or use curl on Linux/Mac:
-curl -fsSL https://ollama.com/install.sh | sh
 
-!nohup ollama serve &
-!sleep 5
+# 1. Create a virtual environment using uv
+uv venv
+source .venv/bin/activate
 
-# 2. Pull a local LLM model (we'll use Llama 3.1 8B)
-ollama pull llama3.1:8b
-# ollama pull phi3:mini  # Small 3.8B model
-
-# 3. Pull an embedding model
-ollama pull nomic-embed-text
-
-# 4. Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# 5. Install required Python packages
+# 2. Install required Python packages
 pip install --upgrade pip
-pip install langgraph==0.3.21
-pip install langchain==0.3.11
-pip install langchain-community==0.3.11
-pip install langchain-google-genai==2.0.4
-pip install chromadb==0.5.23
-pip install beautifulsoup4==4.12.3
-pip install duckduckgo-search==6.3.5
+
+# Core LangChain and LangGraph for orchestration
+pip install langgraph==1.0.3
+pip install langchain==1.0.7
+pip install langchain-community==0.4.1
+
+# Gemini integration for LangChain
+pip install langchain-google-genai==3.0.3
+
+# Other packages
+pip install chromadb==1.3.4
+pip install beautifulsoup4==4.14.2
+pip install duckduckgo-search==8.1.1
 ```
 
-### Verify Ollama Installation
-
-```bash
-# Check if Ollama is running
-ollama list
-
-# Test the LLM
-ollama run llama3.1:8b "Hello, how are you?"
-
-# Test the embedding model
-ollama run nomic-embed-text "This is a test"
-```
 
 ---
 
@@ -190,8 +170,8 @@ Now let's build our complete Agentic RAG system. I'll provide the full, producti
 """
 Agentic RAG Application with LangGraph
 This implementation uses fully open-source tools:
-- Ollama for LLM inference (local, free)
-- Nomic Embed for embeddings (via Ollama)
+- Gemini for LLM inference 
+- Gemini embeddings
 - Chroma for vector storage (open-source)
 - DuckDuckGo for web search (free)
 """
@@ -834,13 +814,7 @@ if __name__ == "__main__":
 
 1. **Save the code** to a file named `agentic_rag.py`
 
-2. **Ensure Ollama is running**:
-   ```bash
-   # Check if Ollama service is running
-   ollama list
-   ```
-
-3. **Run the script**:
+2. **Run the script**:
    ```bash
    python agentic_rag.py
    ```
