@@ -8,7 +8,7 @@ categories: ["Agentic AI Workflows", "Tutorials"]
 description: "Learn to build an intelligent Agentic RAG system using LangGraph, Ollama, and open-source tools. Complete with production-ready code, architecture explanations, and advanced patterns for self-correcting AI workflows."
 summary: "A comprehensive tutorial on building an Agentic RAG application with LangGraph. This guide covers state management, conditional routing, document grading, query rewriting, and web search fallback—all using free, open-source tools. Includes 500+ lines of fully commented, production-ready Python code."
 cover:
-    image: "langgraph-agentic-rag.png"
+    # image: "langgraph-agentic-rag.png"
     alt: "LangGraph Agentic RAG Architecture"
     caption: "Building intelligent, self-correcting RAG systems with LangGraph"
     relative: true
