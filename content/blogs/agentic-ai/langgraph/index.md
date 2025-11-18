@@ -1,8 +1,8 @@
 ---
 title: "Building Agentic RAG with LangGraph: A Complete Guide"
 date: 2025-11-05
-draft: false
-author: "Your Name"
+draft: true
+author: "Saeed Mehrang"
 tags: ["LangGraph", "RAG", "Agentic AI", "LLM"]
 categories: ["Agentic AI Workflows", "Tutorials"]
 description: "Learn to build an intelligent Agentic RAG system using LangGraph, Ollama, and open-source tools. Complete with production-ready code, architecture explanations, and advanced patterns for self-correcting AI workflows."
