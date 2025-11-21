@@ -1,1051 +1,1147 @@
 ---
-title: "Building Agentic RAG with LangGraph: A Complete Guide"
-date: 2025-11-05
-draft: true
+title: "Building an Agentic Hybrid RAG System: Complete Guide with LangGraph and Gemini"
+date: 2025-11-18
+draft: false
 author: "Saeed Mehrang"
-tags: ["LangGraph", "RAG", "Agentic AI", "LLM"]
-categories: ["Agentic AI Workflows", "Tutorials"]
-description: "Learn to build an intelligent Agentic RAG system using LangGraph, Ollama, and open-source tools. Complete with production-ready code, architecture explanations, and advanced patterns for self-correcting AI workflows."
-summary: "A comprehensive tutorial on building an Agentic RAG application with LangGraph. This guide covers state management, conditional routing, document grading, query rewriting, and web search fallback—all using free, open-source tools. Includes 500+ lines of fully commented, production-ready Python code."
+tags: ["LangGraph", "RAG", "Agentic AI", "Gemini", "LangChain", "Hybrid Search", "Docker"]
+categories: ["Agentic AI Workflows", "Tutorials", "Machine Learning"]
+description: "A complete beginner-friendly guide to building a self-correcting Agentic RAG system using Google's Gemini LLM, LangGraph for orchestration, and Hybrid Search combining FAISS vector search with BM25 keyword retrieval."
+summary: "Learn how to build an intelligent RAG application from scratch using **Gemini**, **LangGraph**, and **Hybrid Search** (FAISS + BM25). This comprehensive guide covers repository structure, indexing pipelines, state management, and Docker deployment—everything you need to create your own agentic RAG system."
 cover:
-    # image: "langgraph-agentic-rag.png"
-    alt: "LangGraph Agentic RAG Architecture"
-    caption: "Building intelligent, self-correcting RAG systems with LangGraph"
+    # image: "gemini-hybrid-rag-architecture.png"
+    alt: "LangGraph Agentic RAG Architecture with Gemini"
+    caption: "Building intelligent, self-correcting RAG systems with Gemini and Hybrid Search"
     relative: true
 showToc: true
 TocOpen: true
 weight: 1
 ---
 
-Build a production-ready Agentic RAG system that thinks, corrects itself, and adapts—using LangGraph for orchestration, Ollama for local inference, and fully open-source tools. This tutorial includes complete implementation with document grading, query rewriting, and intelligent fallback mechanisms.
+## 1. Introduction: Why Build an Agentic RAG System?
 
+Traditional RAG (Retrieval-Augmented Generation) systems have a critical limitation: they blindly trust whatever documents are retrieved. But what if the retrieval fails? What if the retrieved context is irrelevant to the user's question?
 
----
+This is where **Agentic RAG** comes in. By adding intelligent agents that can evaluate, decide, and self-correct, we create a system that:
 
-## 1. Introduction to LangGraph {#introduction}
+- **Self-corrects**: Rewrites queries when initial retrieval fails
+- **Routes intelligently**: Falls back to web search when internal knowledge is insufficient
+- **Grades relevance**: Uses LLM judgment to filter irrelevant documents before generation
 
-**LangGraph** is a low-level orchestration framework developed by LangChain for building stateful, multi-agent applications with Large Language Models (LLMs). Unlike traditional RAG systems that follow a simple retrieve-and-generate pattern, LangGraph enables you to create intelligent agents that can:
+In this comprehensive guide, you'll learn how to build such a system from scratch using:
 
-- **Make decisions dynamically** during workflow execution
-- **Maintain state** across multiple interactions
-- **Execute cyclical workflows** with conditional branching
-- **Implement human-in-the-loop** patterns
-- **Persist conversation history** with built-in checkpointing
+1. **Gemini** (Google's powerful LLM) for generation, grading, and reasoning
+2. **LangGraph** for orchestrating the agentic workflow as a state machine
+3. **Hybrid Search** combining FAISS (semantic/vector search) with BM25 (keyword search) for superior retrieval accuracy
 
-### Key Concepts in LangGraph (2025)
-
-LangGraph provides two main APIs as of 2025:
-
-1. **Graph API (StateGraph)**: The traditional approach where you explicitly define nodes, edges, and state
-2. **Functional API** (Released Jan 2025): A newer, more Pythonic approach using decorators
-
-For this tutorial, we'll focus on the **Graph API** as it provides more granular control and is better suited for understanding agentic workflows.
-
-### Core Components
-
-- **State**: A TypedDict or Pydantic model that defines the data structure passed between nodes
-- **Nodes**: Functions that perform specific operations (retrieve documents, generate responses, grade relevance, etc.)
-- **Edges**: Connections between nodes that define the flow
-- **Conditional Edges**: Dynamic routing based on the current state
-- **Checkpointing**: Built-in persistence for conversation history and state management
+This guide is designed for **beginners** with basic Python knowledge. By the end, you'll have a complete, working repository that you can extend with your own documents and use cases.
 
 ---
 
-## 2. What is Agentic RAG? {#what-is-agentic-rag}
+## 2. Complete Repository Structure
 
-### Traditional RAG vs Agentic RAG
+Let's start with the full project structure. Each directory has a specific purpose, and we'll explore every component in detail:
 
-**Traditional RAG** follows a simple, linear flow:
+```text
+agentic-gemini-rag/
+├── src/
+│   ├── config/
+│   │   └── settings.py          # Environment variables and configuration
+│   ├── components/
+│   │   ├── models.py            # Gemini LLM and Embeddings initialization
+│   │   ├── retrieval.py         # Hybrid retriever (FAISS + BM25)
+│   │   └── tools.py             # Web search tool
+│   ├── ingestion/
+│   │   ├── loader.py            # Document loading (PDF, TXT, MD)
+│   │   ├── chunking.py          # Text splitting strategies
+│   │   └── indexer.py           # Build and save FAISS + BM25 indices
+│   ├── nodes/
+│   │   ├── retrieve.py          # Retrieval node
+│   │   ├── grade.py             # Grading and query rewriting nodes
+│   │   └── generate.py          # Answer generation node
+│   ├── state.py                 # LangGraph State schema
+│   ├── prompts.py               # Prompt templates for grading/rewriting
+│   ├── graph.py                 # LangGraph workflow definition
+│   └── main.py                  # CLI entry point
+├── scripts/
+│   └── index_documents.py       # CLI script to index your documents
+├── tests/
+│   ├── unit/
+│   │   ├── test_models.py
+│   │   ├── test_retrieval.py
+│   │   └── test_nodes.py
+│   └── integration/
+│       └── test_full_flow.py
+├── data/                        # Place your documents here (PDF, TXT, MD)
+├── indices/                     # Saved FAISS and BM25 indices (generated)
+├── notebooks/                   # Jupyter notebooks for experimentation
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
+├── .dockerignore
+├── .gitignore
+├── requirements.txt
+└── README.md
 ```
-User Query → Retrieve Documents → Generate Response
-```
 
-**Agentic RAG** introduces intelligence and decision-making:
-```
-User Query → Agent Decision (Should I retrieve?) 
-          → Retrieve Documents 
-          → Grade Relevance (Are these good?)
-          → Rewrite Query (If not relevant)
-          → Retry Retrieval OR Web Search
-          → Generate Response
-```
+### Directory Breakdown
 
-### Why Agentic RAG?
-
-Traditional RAG systems have several limitations:
-
-1. **No relevance checking**: They blindly use whatever documents are retrieved
-2. **No retry logic**: If retrieval fails, the system gives up
-3. **No self-correction**: Cannot detect when it's on the wrong track
-4. **Limited adaptability**: Cannot decide when to use different tools
-
-Agentic RAG solves these problems by:
-
-- **Grading retrieved documents** for relevance
-- **Rewriting queries** when documents aren't helpful
-- **Falling back to web search** when local knowledge is insufficient
-- **Making intelligent decisions** about which tools to use
+- **`src/config/`**: Centralized configuration management using environment variables
+- **`src/components/`**: Reusable components (models, retrievers, tools)
+- **`src/ingestion/`**: **NEW** - Complete pipeline for loading, chunking, and indexing documents
+- **`src/nodes/`**: Individual LangGraph nodes (each node is one step in the workflow)
+- **`src/state.py`**: **NEW** - Defines the state schema that flows through the graph
+- **`src/prompts.py`**: **NEW** - Centralized prompt templates for consistency
+- **`scripts/`**: **NEW** - Utility scripts for indexing and setup
+- **`indices/`**: **NEW** - Persistent storage for FAISS and BM25 indices
 
 ---
 
-## 3. Architecture Overview {#architecture}
+## 3. Core Components Explained
 
-Our Agentic RAG system will implement the following workflow:
+### 3.1. Configuration Management (`src/config/settings.py`)
 
-```mermaid
-graph TD
-    A[User Query] --> B{Agent Decision}
-    B -->|Need Info| C[Retrieve Documents]
-    B -->|Already Know| H[Generate Response]
-    C --> D{Grade Documents}
-    D -->|Relevant| E[Generate Response]
-    D -->|Not Relevant| F{Max Retries?}
-    F -->|No| G[Rewrite Query]
-    G --> C
-    F -->|Yes| I[Web Search]
-    I --> E
-    E --> J[End]
-    H --> J
-```
-
-### Components We'll Build
-
-1. **State Management**: Define the graph state with messages and metadata
-2. **Vector Store**: Use Chroma (open-source) for document embeddings
-3. **Embedding Model**: Use open-source models via Ollama
-4. **LLM**: Use Gemini
-5. **Retriever Node**: Fetch relevant documents from vector store
-6. **Grader Node**: Evaluate document relevance
-7. **Rewriter Node**: Reformulate queries for better retrieval
-8. **Generator Node**: Create final responses
-9. **Web Search Node**: Fallback for missing information
-10. **Routing Logic**: Conditional edges for intelligent flow control
-
----
-
-## 4. Prerequisites & Setup {#prerequisites}
-
-### System Requirements
-
-- **Python**: 3.13 or higher
-- **RAM**: Minimum 4GB
-- **Storage**: 0.1GB+ for document and code storage data
-- **OS**: Windows, macOS, or Linux
-
-### Installation Steps
-
-```bash
-
-# 1. Create a virtual environment using uv
-uv venv
-source .venv/bin/activate
-
-# 2. Install required Python packages
-pip install --upgrade pip
-
-# Core LangChain and LangGraph for orchestration
-pip install langgraph==1.0.3
-pip install langchain==1.0.7
-pip install langchain-community==0.4.1
-
-# Gemini integration for LangChain
-pip install langchain-google-genai==3.0.3
-
-# Other packages
-pip install chromadb==1.3.4
-pip install beautifulsoup4==4.14.2
-pip install duckduckgo-search==8.1.1
-```
-
-
----
-
-## 5. Complete Implementation {#implementation}
-
-Now let's build our complete Agentic RAG system. I'll provide the full, production-ready code with extensive comments.
-
-### Step 1: Import Dependencies and Setup
+First, let's centralize all configuration in one place. This module loads environment variables and provides default values:
 
 ```python
-"""
-Agentic RAG Application with LangGraph
-This implementation uses fully open-source tools:
-- Gemini for LLM inference 
-- Gemini embeddings
-- Chroma for vector storage (open-source)
-- DuckDuckGo for web search (free)
-"""
-
-from typing import Annotated, List, TypedDict, Literal
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langgraph.graph import StateGraph, END, START
-from langgraph.graph.message import add_messages
-from langgraph.checkpoint.memory import MemorySaver
-from duckduckgo_search import DDGS
 import os
+from dotenv import load_dotenv
 
-# Configure environment
-os.environ["USER_AGENT"] = "AgenticRAGBot/1.0"
+load_dotenv()
 
+# Gemini API Configuration
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "models/text-embedding-004")
 
-# ============================================================================
-# STEP 2: DEFINE THE STATE
-# ============================================================================
-# State is the data structure that flows through the graph.
-# It contains all information needed by nodes to make decisions.
+# Retrieval Configuration
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
+RETRIEVAL_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "4"))
 
-class AgentState(TypedDict):
-    """
-    The state of our agentic RAG system.
-    
-    Attributes:
-        messages: Conversation history (user questions, AI responses)
-        retrieval_question: The current question used for retrieval
-        documents: Retrieved documents from vector store
-        generation: The final generated response
-        retry_count: Number of times we've rewritten the query
-        web_search_needed: Flag indicating if web search is required
-    """
-    # add_messages is a special reducer that appends new messages to the list
-    # instead of replacing the entire list
-    messages: Annotated[List[BaseMessage], add_messages]
-    retrieval_question: str
-    documents: List[str]
-    generation: str
-    retry_count: int
-    web_search_needed: bool
+# Hybrid Search Weights (vector_weight, bm25_weight)
+VECTOR_WEIGHT = float(os.getenv("VECTOR_WEIGHT", "0.5"))
+BM25_WEIGHT = float(os.getenv("BM25_WEIGHT", "0.5"))
 
+# Agentic Workflow Configuration
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", "2"))
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0"))
 
-# ============================================================================
-# STEP 3: INITIALIZE MODELS AND VECTOR STORE
-# ============================================================================
+# Paths
+DATA_DIR = os.getenv("DATA_DIR", "./data")
+INDICES_DIR = os.getenv("INDICES_DIR", "./indices")
+FAISS_INDEX_PATH = os.path.join(INDICES_DIR, "faiss_index")
+BM25_INDEX_PATH = os.path.join(INDICES_DIR, "bm25_index.pkl")
+```
 
-# Option A: Using Ollama (Local, Free)
-# from langchain_ollama import ChatOllama, OllamaEmbeddings
-# llm = ChatOllama(model="llama3.1:8b", temperature=0)
-# embeddings = OllamaEmbeddings(model="nomic-embed-text")
+**What's happening here:**
+- We use `python-dotenv` to load variables from a `.env` file
+- All tunable parameters are configurable (chunk sizes, retrieval counts, model names)
+- Hybrid search weights allow you to balance vector vs keyword search
+- `MAX_RETRIES` prevents infinite loops in the query rewriting cycle
 
-# Option B: Using Google Gemini (Cloud, Low-Cost)
+### 3.2. Gemini Integration (`src/components/models.py`)
+
+This module initializes the LLM and embeddings using Google's official LangChain integration:
+
+```python
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-import os
+from src.config import settings
 
-# Set your API key (get free key at: https://aistudio.google.com/apikey)
-os.environ["GOOGLE_API_KEY"] = "your-api-key-here"  # Replace with your key
+def get_llm():
+    """Initialize Gemini LLM for generation, grading, and routing."""
+    return ChatGoogleGenerativeAI(
+        model=settings.GEMINI_MODEL,
+        google_api_key=settings.GEMINI_API_KEY,
+        temperature=settings.TEMPERATURE,
+        convert_system_message_to_human=True  # Gemini compatibility
+    )
 
-# Initialize the LLM (using Gemini 2.0 Flash)
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",  # Fast, cheap, powerful
-    temperature=0,  # Set to 0 for more deterministic outputs
+def get_embeddings():
+    """Initialize Gemini embeddings for vector search."""
+    return GoogleGenerativeAIEmbeddings(
+        model=settings.GEMINI_EMBEDDING_MODEL,
+        google_api_key=settings.GEMINI_API_KEY
+    )
+```
+
+**Key points:**
+- **`gemini-2.0-flash-exp`**: Fast, efficient model suitable for educational purposes
+- **`text-embedding-004`**: Google's latest embedding model with 768 dimensions
+- **`temperature=0`**: Deterministic outputs for grading and routing (you want consistency, not creativity)
+- **Single API key**: Only `GEMINI_API_KEY` is required (get it from [Google AI Studio](https://aistudio.google.com/app/apikey))
+
+### 3.3. Document Ingestion Pipeline
+
+Before we can retrieve documents, we need to load, chunk, and index them. This is a critical step that beginners often overlook.
+
+#### 3.3.1. Document Loading (`src/ingestion/loader.py`)
+
+This module loads various document formats from the `data/` directory:
+
+```python
+from pathlib import Path
+from langchain_community.document_loaders import (
+    PyPDFLoader,
+    TextLoader,
+    UnstructuredMarkdownLoader
 )
+from src.config import settings
 
-# Initialize the embedding model (using Google embeddings)
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/text-embedding-004"  # Latest embedding model
-)
+def load_documents(data_dir: str = None):
+    """Load all documents from the data directory."""
+    if data_dir is None:
+        data_dir = settings.DATA_DIR
 
-# Initialize vector store (will be populated with documents)
-vectorstore = None  # We'll initialize this after loading documents
+    documents = []
+    data_path = Path(data_dir)
 
+    # Load PDFs
+    for pdf_file in data_path.glob("**/*.pdf"):
+        loader = PyPDFLoader(str(pdf_file))
+        documents.extend(loader.load())
 
-# ============================================================================
-# STEP 4: LOAD AND INDEX DOCUMENTS
-# ============================================================================
+    # Load text files
+    for txt_file in data_path.glob("**/*.txt"):
+        loader = TextLoader(str(txt_file))
+        documents.extend(loader.load())
 
-def setup_vectorstore(urls: List[str]) -> Chroma:
-    """
-    Load documents from URLs, split them into chunks, and create a vector store.
-    
-    This function:
-    1. Loads web pages using WebBaseLoader
-    2. Splits documents into smaller chunks (for better retrieval)
-    3. Creates embeddings for each chunk
-    4. Stores everything in a Chroma vector database
-    
-    Args:
-        urls: List of URLs to load and index
-        
-    Returns:
-        Chroma vectorstore instance with indexed documents
-    """
-    print("Loading documents from URLs...")
-    
-    # Load documents from web pages
-    docs = []
-    for url in urls:
-        try:
-            loader = WebBaseLoader(url)
-            docs.extend(loader.load())
-            print(f"✓ Loaded: {url}")
-        except Exception as e:
-            print(f"✗ Failed to load {url}: {e}")
-    
-    if not docs:
-        raise ValueError("No documents were successfully loaded!")
-    
-    print(f"\nTotal documents loaded: {len(docs)}")
-    
-    # Split documents into smaller chunks
-    # This improves retrieval accuracy and fits within context windows
+    # Load markdown files
+    for md_file in data_path.glob("**/*.md"):
+        loader = UnstructuredMarkdownLoader(str(md_file))
+        documents.extend(loader.load())
+
+    print(f"Loaded {len(documents)} documents from {data_dir}")
+    return documents
+```
+
+**What this does:**
+- Recursively scans the `data/` directory for PDF, TXT, and MD files
+- Uses LangChain's document loaders to extract text
+- Returns a list of `Document` objects with `.page_content` and `.metadata`
+
+#### 3.3.2. Text Chunking (`src/ingestion/chunking.py`)
+
+Large documents must be split into smaller chunks for effective retrieval:
+
+```python
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from src.config import settings
+
+def chunk_documents(documents):
+    """Split documents into chunks for indexing."""
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,      # Each chunk is ~500 characters
-        chunk_overlap=50,    # 50 character overlap between chunks
-        separators=["\n\n", "\n", " ", ""]  # Split on paragraphs first, then sentences
+        chunk_size=settings.CHUNK_SIZE,
+        chunk_overlap=settings.CHUNK_OVERLAP,
+        length_function=len,
+        is_separator_regex=False,
     )
-    
-    doc_splits = text_splitter.split_documents(docs)
-    print(f"Documents split into {len(doc_splits)} chunks")
-    
-    # Create vector store with embeddings
-    print("Creating embeddings and storing in Chroma...")
-    vectorstore = Chroma.from_documents(
-        documents=doc_splits,
-        embedding=embeddings,
-        collection_name="agentic-rag-collection",
-        persist_directory="./chroma_db"  # Persist to disk
+
+    chunks = text_splitter.split_documents(documents)
+    print(f"Split into {len(chunks)} chunks")
+    return chunks
+```
+
+**Why chunking matters:**
+- **Chunk size (1000 chars)**: Small enough to be precise, large enough to be meaningful
+- **Overlap (200 chars)**: Ensures context isn't lost at chunk boundaries
+- **RecursiveCharacterTextSplitter**: Splits on paragraphs first, then sentences, then words
+
+#### 3.3.3. Indexing Pipeline (`src/ingestion/indexer.py`)
+
+Now we create both FAISS and BM25 indices:
+
+```python
+import pickle
+from pathlib import Path
+from langchain_community.vectorstores import FAISS
+from langchain_community.retrievers import BM25Retriever
+from src.components.models import get_embeddings
+from src.config import settings
+
+def build_and_save_indices(documents):
+    """Build FAISS and BM25 indices and save them to disk."""
+
+    # Create indices directory
+    Path(settings.INDICES_DIR).mkdir(parents=True, exist_ok=True)
+
+    # 1. Build FAISS vector index
+    print("Building FAISS vector index...")
+    embeddings = get_embeddings()
+    vectorstore = FAISS.from_documents(documents, embeddings)
+    vectorstore.save_local(settings.FAISS_INDEX_PATH)
+    print(f"FAISS index saved to {settings.FAISS_INDEX_PATH}")
+
+    # 2. Build BM25 keyword index
+    print("Building BM25 keyword index...")
+    bm25_retriever = BM25Retriever.from_documents(documents)
+    bm25_retriever.k = settings.RETRIEVAL_TOP_K
+
+    # Save BM25 index using pickle
+    with open(settings.BM25_INDEX_PATH, 'wb') as f:
+        pickle.dump(bm25_retriever, f)
+    print(f"BM25 index saved to {settings.BM25_INDEX_PATH}")
+
+    return vectorstore, bm25_retriever
+
+def load_indices():
+    """Load pre-built FAISS and BM25 indices from disk."""
+    embeddings = get_embeddings()
+
+    # Load FAISS
+    vectorstore = FAISS.load_local(
+        settings.FAISS_INDEX_PATH,
+        embeddings,
+        allow_dangerous_deserialization=True
     )
-    
-    print("✓ Vector store created successfully!\n")
-    return vectorstore
 
+    # Load BM25
+    with open(settings.BM25_INDEX_PATH, 'rb') as f:
+        bm25_retriever = pickle.load(f)
 
-# ============================================================================
-# STEP 5: RETRIEVER NODE
-# ============================================================================
+    return vectorstore, bm25_retriever
+```
 
-def retrieve_documents(state: AgentState) -> AgentState:
-    """
-    Retrieve relevant documents from the vector store.
-    
-    This node:
-    1. Takes the current question from state
-    2. Performs similarity search in the vector store
-    3. Returns the top-k most relevant documents
-    4. Updates the state with retrieved documents
-    
-    Args:
-        state: Current agent state containing the question
-        
-    Returns:
-        Updated state with retrieved documents
-    """
-    print("\n--- RETRIEVE DOCUMENTS ---")
-    question = state["retrieval_question"]
-    print(f"Query: {question}")
-    
-    # Perform similarity search (retrieve top 3 most relevant chunks)
-    retriever = vectorstore.as_retriever(
-        search_kwargs={"k": 3}  # Return top 3 documents
+**Critical points:**
+- **FAISS persistence**: Uses `.save_local()` to save vectors to disk
+- **BM25 persistence**: Uses `pickle` since BM25Retriever doesn't have built-in serialization
+- **Two functions**: One for building (run once), one for loading (run every query)
+
+### 3.4. Hybrid Search Retriever (`src/components/retrieval.py`)
+
+Now we combine FAISS and BM25 into a unified hybrid retriever:
+
+```python
+from langchain.retrievers import EnsembleRetriever
+from src.ingestion.indexer import load_indices
+from src.config import settings
+
+def get_hybrid_retriever():
+    """Create a hybrid retriever combining FAISS (vector) and BM25 (keyword)."""
+
+    # Load both indices
+    vectorstore, bm25_retriever = load_indices()
+
+    # Create vector retriever from FAISS
+    vector_retriever = vectorstore.as_retriever(
+        search_kwargs={"k": settings.RETRIEVAL_TOP_K}
     )
-    
-    documents = retriever.invoke(question)
-    
-    # Extract the text content from documents
-    doc_contents = [doc.page_content for doc in documents]
-    
-    print(f"Retrieved {len(doc_contents)} documents")
-    for i, doc in enumerate(doc_contents, 1):
-        print(f"\nDocument {i} (first 100 chars): {doc[:100]}...")
-    
-    return {
-        **state,
-        "documents": doc_contents
-    }
 
+    # Combine using EnsembleRetriever with configurable weights
+    hybrid_retriever = EnsembleRetriever(
+        retrievers=[vector_retriever, bm25_retriever],
+        weights=[settings.VECTOR_WEIGHT, settings.BM25_WEIGHT]
+    )
 
-# ============================================================================
-# STEP 6: DOCUMENT GRADER NODE
-# ============================================================================
+    return hybrid_retriever
+```
 
-def grade_documents(state: AgentState) -> AgentState:
+**How Hybrid Search works:**
+1. **Vector retriever**: Finds semantically similar documents using cosine similarity
+2. **BM25 retriever**: Finds documents with matching keywords using term frequency
+3. **EnsembleRetriever**: Combines results using **Reciprocal Rank Fusion (RRF)**
+   - RRF formula: `score = sum(1 / (k + rank_i))` for each retriever
+   - Documents ranked highly by both retrievers get the best scores
+4. **Weights**: You can tune `[0.5, 0.5]` to favor vector or keyword search
+
+---
+
+## 4. The Agentic Workflow: LangGraph State Machine
+
+Now we get to the heart of the system: the agentic workflow orchestrated by LangGraph.
+
+### 4.1. State Schema (`src/state.py`)
+
+First, we define the state that flows through the graph:
+
+```python
+from typing import List, TypedDict
+
+class GraphState(TypedDict):
     """
-    Grade the relevance of retrieved documents to the question.
-    
-    This node:
-    1. Uses the LLM to evaluate each retrieved document
-    2. Determines if documents contain information relevant to the question
-    3. Filters out irrelevant documents
-    4. Sets a flag if web search is needed (when no relevant docs found)
-    
-    Args:
-        state: Current agent state with retrieved documents
-        
-    Returns:
-        Updated state with filtered documents and web_search_needed flag
+    State schema for the LangGraph workflow.
+
+    Attributes:
+        question: Original user question
+        generation: Final generated answer
+        documents: Retrieved documents (as strings)
+        retries: Number of query rewrites attempted
     """
-    print("\n--- GRADE DOCUMENTS ---")
-    question = state["retrieval_question"]
-    documents = state["documents"]
-    
-    # Create a prompt for the grader
-    grader_prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a grader assessing the relevance of retrieved documents to a user question.
-        
-Your task: Determine if the document contains keywords or semantic meaning related to the question.
+    question: str
+    generation: str
+    documents: List[str]
+    retries: int
+```
 
-Rules:
-- Give a binary score: 'yes' or 'no'
-- 'yes' means the document is relevant to the question
-- 'no' means the document is not relevant
-- Be strict: only mark as 'yes' if there's clear relevance
+**Why this matters:**
+- **Typed state**: Each node reads and updates this state
+- **Retry counter**: Prevents infinite loops (max 2 rewrites)
+- **Documents as strings**: We serialize document content for simplicity
 
-Return ONLY the word 'yes' or 'no', nothing else."""),
-        ("human", "Question: {question}\n\nDocument: {document}\n\nIs this document relevant?")
-    ])
-    
-    grader_chain = grader_prompt | llm | StrOutputParser()
-    
-    # Grade each document
-    filtered_docs = []
-    for i, doc in enumerate(documents, 1):
-        print(f"\nGrading document {i}...")
-        score = grader_chain.invoke({
-            "question": question,
-            "document": doc
-        }).strip().lower()
-        
-        if "yes" in score:
-            print(f"✓ Document {i}: RELEVANT")
-            filtered_docs.append(doc)
-        else:
-            print(f"✗ Document {i}: NOT RELEVANT")
-    
-    # Determine if we need web search
-    web_search_needed = len(filtered_docs) == 0
-    
-    if web_search_needed:
-        print("\n⚠ No relevant documents found. Web search will be triggered.")
-    else:
-        print(f"\n✓ {len(filtered_docs)} relevant document(s) found.")
-    
-    return {
-        **state,
-        "documents": filtered_docs,
-        "web_search_needed": web_search_needed
-    }
+### 4.2. Prompt Templates (`src/prompts.py`)
 
+Centralized prompts ensure consistency:
 
-# ============================================================================
-# STEP 7: QUERY REWRITER NODE
-# ============================================================================
+```python
+GRADING_PROMPT = """You are a grader assessing relevance of a retrieved document to a user question.
 
-def rewrite_query(state: AgentState) -> AgentState:
-    """
-    Rewrite the query to improve retrieval results.
-    
-    This node:
-    1. Takes the original question
-    2. Uses the LLM to reformulate it for better search results
-    3. Updates the retrieval_question in state
-    4. Increments retry counter
-    
-    Args:
-        state: Current agent state
-        
-    Returns:
-        Updated state with rewritten query
-    """
-    print("\n--- REWRITE QUERY ---")
-    original_question = state["retrieval_question"]
-    retry_count = state.get("retry_count", 0)
-    
-    print(f"Original query: {original_question}")
-    print(f"Retry attempt: {retry_count + 1}")
-    
-    # Create a prompt for query rewriting
-    rewriter_prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a question re-writer. Your task is to reformulate the input question to improve retrieval.
-        
-Your goal: Convert the question into a better version optimized for semantic search.
+Retrieved Document:
+{document}
 
-Strategies:
-- Add relevant synonyms and related terms
-- Make the question more specific and detailed
-- Remove ambiguity
-- Focus on key concepts
+User Question:
+{question}
 
-Return ONLY the rewritten question, nothing else."""),
-        ("human", "Original question: {question}\n\nRewrite this question:")
-    ])
-    
-    rewriter_chain = rewriter_prompt | llm | StrOutputParser()
-    
-    rewritten_question = rewriter_chain.invoke({
-        "question": original_question
-    }).strip()
-    
-    print(f"Rewritten query: {rewritten_question}")
-    
-    return {
-        **state,
-        "retrieval_question": rewritten_question,
-        "retry_count": retry_count + 1
-    }
+If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant.
+Give a binary score 'yes' or 'no' to indicate whether the document is relevant.
 
+Provide the score with no preamble or explanation. Just answer 'yes' or 'no'."""
 
-# ============================================================================
-# STEP 8: WEB SEARCH NODE
-# ============================================================================
+REWRITE_PROMPT = """You are a question re-writer that converts an input question to a better version optimized for retrieval.
 
-def web_search(state: AgentState) -> AgentState:
-    """
-    Perform web search when local documents are insufficient.
-    
-    This node:
-    1. Uses DuckDuckGo to search the web (free, no API key required)
-    2. Retrieves top search results
-    3. Adds web content to documents
-    
-    Args:
-        state: Current agent state
-        
-    Returns:
-        Updated state with web search results
-    """
-    print("\n--- WEB SEARCH ---")
-    question = state["retrieval_question"]
-    
-    print(f"Searching the web for: {question}")
-    
-    try:
-        # Perform web search using DuckDuckGo
-        ddgs = DDGS()
-        results = ddgs.text(
-            keywords=question,
-            max_results=3  # Get top 3 results
-        )
-        
-        # Extract content from search results
-        web_docs = []
-        for result in results:
-            content = f"Title: {result.get('title', 'N/A')}\n"
-            content += f"Snippet: {result.get('body', 'N/A')}\n"
-            content += f"URL: {result.get('href', 'N/A')}"
-            web_docs.append(content)
-            print(f"\n✓ Found: {result.get('title', 'N/A')}")
-        
-        if not web_docs:
-            print("⚠ No web results found")
-            web_docs = ["No relevant information found via web search."]
-        
-    except Exception as e:
-        print(f"✗ Web search failed: {e}")
-        web_docs = [f"Web search unavailable: {str(e)}"]
-    
-    return {
-        **state,
-        "documents": web_docs,
-        "web_search_needed": False  # Reset flag
-    }
+Look at the original question and formulate an improved question that will retrieve better documents from the knowledge base.
 
+Original Question:
+{question}
 
-# ============================================================================
-# STEP 9: GENERATOR NODE
-# ============================================================================
+Provide only the improved question with no preamble or explanation."""
 
-def generate_response(state: AgentState) -> AgentState:
-    """
-    Generate the final response using retrieved documents.
-    
-    This node:
-    1. Takes the question and relevant documents
-    2. Uses the LLM to generate a comprehensive answer
-    3. Ensures the answer is grounded in the provided context
-    4. Adds the response to the conversation history
-    
-    Args:
-        state: Current agent state with documents
-        
-    Returns:
-        Updated state with generated response
-    """
-    print("\n--- GENERATE RESPONSE ---")
-    question = state["retrieval_question"]
-    documents = state["documents"]
-    
-    # Combine documents into context
-    context = "\n\n".join(documents)
-    
-    # Create a RAG prompt
-    rag_prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a helpful AI assistant. Use the following context to answer the question.
+GENERATION_PROMPT = """You are an assistant for question-answering tasks.
 
-Rules:
-- Base your answer ONLY on the provided context
-- If the context doesn't contain enough information, say so clearly
-- Be concise but comprehensive (2-4 sentences)
-- Cite specific information from the context when possible
-- Do not make up information or use knowledge outside the context
+Use the following retrieved context to answer the question. If you don't know the answer based on the context, say that you don't know.
+
+Question: {question}
 
 Context:
-{context}"""),
-        ("human", "{question}")
-    ])
-    
-    rag_chain = rag_prompt | llm | StrOutputParser()
-    
-    # Generate response
-    generation = rag_chain.invoke({
-        "context": context,
-        "question": question
-    })
-    
-    print(f"\nGenerated response: {generation}")
-    
-    # Add the response to messages
-    messages = state["messages"] + [AIMessage(content=generation)]
-    
-    return {
-        **state,
-        "generation": generation,
-        "messages": messages
-    }
+{context}
 
+Answer:"""
+```
 
-# ============================================================================
-# STEP 10: ROUTING LOGIC (CONDITIONAL EDGES)
-# ============================================================================
+**Design choices:**
+- **Binary grading**: Simple "yes/no" makes parsing easier
+- **No preamble**: Reduces token usage and ensures consistent outputs
+- **Grounded generation**: Explicitly tells the LLM to use only the provided context
 
-def should_continue_retrieval(state: AgentState) -> Literal["rewrite", "websearch", "generate"]:
-    """
-    Decide what to do after grading documents.
-    
-    Decision logic:
-    - If web search is needed -> go to web search
-    - If retry count < 2 and no relevant docs -> rewrite query and retry
-    - If retry count >= 2 and no relevant docs -> go to web search
-    - If relevant docs found -> generate response
-    
-    Args:
-        state: Current agent state
-        
-    Returns:
-        Next node to execute
-    """
-    web_search_needed = state.get("web_search_needed", False)
-    retry_count = state.get("retry_count", 0)
-    has_documents = len(state.get("documents", [])) > 0
-    
-    if web_search_needed:
-        return "websearch"
-    elif not has_documents and retry_count < 2:
+### 4.3. LangGraph Nodes
+
+Each node is a function that takes the state and returns updated state.
+
+#### 4.3.1. Retrieve Node (`src/nodes/retrieve.py`)
+
+```python
+from src.components.retrieval import get_hybrid_retriever
+from src.state import GraphState
+
+def retrieve(state: GraphState) -> GraphState:
+    """Retrieve documents using hybrid search."""
+    print(f"---RETRIEVE (attempt {state['retries'] + 1})---")
+    question = state["question"]
+
+    retriever = get_hybrid_retriever()
+    documents = retriever.get_relevant_documents(question)
+
+    # Convert to strings
+    state["documents"] = [doc.page_content for doc in documents]
+    print(f"Retrieved {len(documents)} documents")
+
+    return state
+```
+
+#### 4.3.2. Grade Documents Node (`src/nodes/grade.py`)
+
+```python
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from src.components.models import get_llm
+from src.prompts import GRADING_PROMPT
+from src.state import GraphState
+
+def grade_documents(state: GraphState) -> GraphState:
+    """Grade retrieved documents for relevance."""
+    print("---GRADE DOCUMENTS---")
+    question = state["question"]
+    documents = state["documents"]
+
+    llm = get_llm()
+    prompt = ChatPromptTemplate.from_template(GRADING_PROMPT)
+    chain = prompt | llm | StrOutputParser()
+
+    # Grade each document
+    filtered_docs = []
+    for doc in documents:
+        score = chain.invoke({"document": doc, "question": question}).strip().lower()
+        if score == "yes":
+            print("  ✓ Document is relevant")
+            filtered_docs.append(doc)
+        else:
+            print("  ✗ Document is not relevant")
+
+    state["documents"] = filtered_docs
+    print(f"Filtered to {len(filtered_docs)} relevant documents")
+
+    return state
+
+def decide_to_generate(state: GraphState) -> str:
+    """Routing function: generate answer or rewrite query?"""
+    if not state["documents"]:
+        print("---DECISION: REWRITE QUERY---")
         return "rewrite"
-    elif not has_documents and retry_count >= 2:
-        return "websearch"
     else:
+        print("---DECISION: GENERATE ANSWER---")
         return "generate"
+```
 
+**What's happening:**
+- Each document is graded individually with the LLM
+- Binary "yes/no" responses filter irrelevant documents
+- **Routing decision**: If no documents passed grading, rewrite the query
 
-# ============================================================================
-# STEP 11: BUILD THE GRAPH
-# ============================================================================
+#### 4.3.3. Rewrite Query Node (`src/nodes/grade.py`)
 
-def create_graph() -> StateGraph:
-    """
-    Create and compile the LangGraph workflow.
-    
-    Graph structure:
-    START → retrieve → grade → [rewrite → retrieve] OR [websearch] OR generate → END
-    
-    Returns:
-        Compiled graph ready for execution
-    """
-    # Initialize the graph with our state
-    workflow = StateGraph(AgentState)
-    
+```python
+from src.config import settings
+
+def rewrite_query(state: GraphState) -> GraphState:
+    """Rewrite the query to improve retrieval."""
+    print("---REWRITE QUERY---")
+    question = state["question"]
+    retries = state["retries"]
+
+    # Check max retries
+    if retries >= settings.MAX_RETRIES:
+        print(f"Max retries ({settings.MAX_RETRIES}) reached. Stopping.")
+        state["generation"] = "I don't have enough information to answer this question."
+        return state
+
+    # Rewrite using LLM
+    llm = get_llm()
+    prompt = ChatPromptTemplate.from_template(REWRITE_PROMPT)
+    chain = prompt | llm | StrOutputParser()
+
+    better_question = chain.invoke({"question": question})
+    print(f"Rewritten: {better_question}")
+
+    state["question"] = better_question
+    state["retries"] = retries + 1
+
+    return state
+```
+
+**Key insight:**
+- The rewritten question **replaces** the original in state
+- Retry counter increments to prevent loops
+- After max retries, we give up gracefully
+
+#### 4.3.4. Generate Answer Node (`src/nodes/generate.py`)
+
+```python
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from src.components.models import get_llm
+from src.prompts import GENERATION_PROMPT
+from src.state import GraphState
+
+def generate(state: GraphState) -> GraphState:
+    """Generate final answer using retrieved documents."""
+    print("---GENERATE ANSWER---")
+    question = state["question"]
+    documents = state["documents"]
+
+    # Combine documents into context
+    context = "\n\n".join(documents)
+
+    # Generate answer
+    llm = get_llm()
+    prompt = ChatPromptTemplate.from_template(GENERATION_PROMPT)
+    chain = prompt | llm | StrOutputParser()
+
+    answer = chain.invoke({"question": question, "context": context})
+    state["generation"] = answer
+
+    return state
+```
+
+### 4.4. Building the Graph (`src/graph.py`)
+
+Now we connect all nodes into a state machine:
+
+```python
+from langgraph.graph import StateGraph, END
+from src.state import GraphState
+from src.nodes.retrieve import retrieve
+from src.nodes.grade import grade_documents, decide_to_generate, rewrite_query
+from src.nodes.generate import generate
+
+def create_graph():
+    """Build the LangGraph workflow."""
+
+    workflow = StateGraph(GraphState)
+
     # Add nodes
-    workflow.add_node("retrieve", retrieve_documents)
-    workflow.add_node("grade", grade_documents)
-    workflow.add_node("rewrite", rewrite_query)
-    workflow.add_node("websearch", web_search)
-    workflow.add_node("generate", generate_response)
-    
-    # Define the flow
-    workflow.add_edge(START, "retrieve")          # Start with retrieval
-    workflow.add_edge("retrieve", "grade")        # Then grade documents
-    
-    # Conditional routing after grading
+    workflow.add_node("retrieve", retrieve)
+    workflow.add_node("grade_documents", grade_documents)
+    workflow.add_node("rewrite_query", rewrite_query)
+    workflow.add_node("generate", generate)
+
+    # Build graph flow
+    workflow.set_entry_point("retrieve")
+    workflow.add_edge("retrieve", "grade_documents")
     workflow.add_conditional_edges(
-        "grade",
-        should_continue_retrieval,
+        "grade_documents",
+        decide_to_generate,
         {
-            "rewrite": "rewrite",      # Rewrite query if needed
-            "websearch": "websearch",  # Fall back to web search
-            "generate": "generate"     # Generate if we have good docs
-        }
+            "generate": "generate",
+            "rewrite": "rewrite_query",
+        },
     )
-    
-    workflow.add_edge("rewrite", "retrieve")      # After rewrite, retrieve again
-    workflow.add_edge("websearch", "generate")    # After web search, generate
-    workflow.add_edge("generate", END)            # End after generating
-    
-    # Compile with memory checkpointing
-    memory = MemorySaver()
-    graph = workflow.compile(checkpointer=memory)
-    
-    return graph
+    workflow.add_edge("rewrite_query", "retrieve")  # Loop back to retrieval
+    workflow.add_edge("generate", END)
 
+    return workflow.compile()
+```
 
-# ============================================================================
-# STEP 12: MAIN EXECUTION FUNCTION
-# ============================================================================
+**Graph flow visualization:**
 
-def run_agentic_rag(question: str, graph: StateGraph, thread_id: str = "1"):
-    """
-    Run the agentic RAG system with a question.
-    
-    Args:
-        question: User's question
-        graph: Compiled LangGraph workflow
-        thread_id: Conversation thread ID for persistence
-        
-    Returns:
-        Final response from the system
-    """
-    print("=" * 80)
-    print(f"QUESTION: {question}")
-    print("=" * 80)
-    
-    # Create initial state
-    initial_state = {
-        "messages": [HumanMessage(content=question)],
-        "retrieval_question": question,
-        "documents": [],
-        "generation": "",
-        "retry_count": 0,
-        "web_search_needed": False
-    }
-    
-    # Execute the graph
-    config = {"configurable": {"thread_id": thread_id}}
-    
-    # Stream the execution to see each step
-    final_state = None
-    for output in graph.stream(initial_state, config):
-        for node_name, node_output in output.items():
-            print(f"\n{'='*80}")
-            print(f"Node: {node_name}")
-            print(f"{'='*80}")
-        final_state = node_output
-    
-    print("\n" + "=" * 80)
-    print("FINAL ANSWER")
-    print("=" * 80)
-    print(final_state["generation"])
-    print("=" * 80 + "\n")
-    
-    return final_state["generation"]
+```
+┌─────────┐
+│ START   │
+└────┬────┘
+     │
+     v
+┌──────────┐
+│ retrieve │ ←──────────┐
+└────┬─────┘            │
+     │                  │
+     v                  │
+┌────────────────┐      │
+│ grade_documents│      │
+└────┬───────────┘      │
+     │                  │
+     v                  │
+  [Decision]            │
+     │                  │
+   ┌─┴─┐                │
+   │   │                │
+ yes   no               │
+   │   │                │
+   │   v                │
+   │ ┌──────────────┐   │
+   │ │rewrite_query │───┘
+   │ └──────────────┘
+   │
+   v
+┌──────────┐
+│ generate │
+└────┬─────┘
+     │
+     v
+   [END]
+```
 
+**Critical concepts:**
+1. **Entry point**: Always starts with retrieval
+2. **Conditional edge**: Routes to generate or rewrite based on grading results
+3. **Loop**: Rewrite → Retrieve creates self-correction cycle
+4. **Termination**: Either reaches generate or hits max retries
 
-# ============================================================================
-# MAIN PROGRAM
-# ============================================================================
+---
+
+## 5. Running the System
+
+### 5.1. Indexing Script (`scripts/index_documents.py`)
+
+This CLI script builds the indices (run this once before querying):
+
+```python
+#!/usr/bin/env python3
+"""
+Index documents from the data/ directory.
+Run this script once to build FAISS and BM25 indices.
+"""
+from src.ingestion.loader import load_documents
+from src.ingestion.chunking import chunk_documents
+from src.ingestion.indexer import build_and_save_indices
+
+def main():
+    print("=== Starting Document Indexing ===\n")
+
+    # Step 1: Load documents
+    documents = load_documents()
+
+    if not documents:
+        print("No documents found in data/ directory!")
+        return
+
+    # Step 2: Chunk documents
+    chunks = chunk_documents(documents)
+
+    # Step 3: Build and save indices
+    build_and_save_indices(chunks)
+
+    print("\n=== Indexing Complete ===")
+    print("You can now run queries using: python -m src.main")
 
 if __name__ == "__main__":
-    print("""
-    ╔═══════════════════════════════════════════════════════════════════╗
-    ║                                                                   ║
-    ║           AGENTIC RAG SYSTEM WITH LANGGRAPH                       ║
-    ║           Open-Source • Local • Privacy-First                     ║
-    ║                                                                   ║
-    ╚═══════════════════════════════════════════════════════════════════╝
-    """)
-    
-    # Step 1: Setup vector store with sample documents
-    print("STEP 1: Setting up vector store...")
-    print("-" * 80)
-    
-    # Sample URLs about AI agents (you can replace with your own)
-    urls = [
-        "https://lilianweng.github.io/posts/2023-06-23-agent/",
-        "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
-    ]
-    
-    vectorstore = setup_vectorstore(urls)
-    
-    # Step 2: Create the graph
-    print("\nSTEP 2: Creating LangGraph workflow...")
-    print("-" * 80)
-    graph = create_graph()
-    print("✓ Graph compiled successfully!")
-    
-    # Step 3: Test with questions
-    print("\nSTEP 3: Running test queries...")
-    print("-" * 80)
-    
-    # Test Question 1: Should find answer in documents
-    question1 = "What are the key components of an AI agent?"
-    run_agentic_rag(question1, graph, thread_id="test-1")
-    
-    # Test Question 2: Might need query rewriting
-    question2 = "How do agents plan their actions?"
-    run_agentic_rag(question2, graph, thread_id="test-2")
-    
-    # Test Question 3: Might need web search (outside document scope)
-    question3 = "What is the latest version of LangGraph released in 2025?"
-    run_agentic_rag(question3, graph, thread_id="test-3")
-    
-    print("""
-    ╔═══════════════════════════════════════════════════════════════════╗
-    ║                                                                   ║
-    ║                    EXECUTION COMPLETE!                            ║
-    ║                                                                   ║
-    ║  You can now modify the code to:                                  ║
-    ║  • Add your own documents                                         ║
-    ║  • Customize the prompts                                          ║
-    ║  • Change the LLM model                                           ║
-    ║  • Add more sophisticated grading logic                           ║
-    ║  • Implement human-in-the-loop workflows                          ║
-    ║                                                                   ║
-    ╚═══════════════════════════════════════════════════════════════════╝
-    """)
+    main()
+```
+
+**Usage:**
+```bash
+python scripts/index_documents.py
+```
+
+### 5.2. Main CLI Entry Point (`src/main.py`)
+
+This is the interactive query interface:
+
+```python
+#!/usr/bin/env python3
+"""
+Main entry point for the Agentic RAG system.
+Run queries against your indexed documents.
+"""
+from src.graph import create_graph
+from src.state import GraphState
+
+def main():
+    print("=== Agentic RAG with Gemini & Hybrid Search ===\n")
+
+    # Build the graph
+    app = create_graph()
+
+    # Interactive query loop
+    while True:
+        question = input("\nAsk a question (or 'quit' to exit): ").strip()
+
+        if question.lower() in ["quit", "exit", "q"]:
+            print("Goodbye!")
+            break
+
+        if not question:
+            continue
+
+        # Initialize state
+        initial_state: GraphState = {
+            "question": question,
+            "generation": "",
+            "documents": [],
+            "retries": 0,
+        }
+
+        # Run the graph
+        print("\n" + "="*60)
+        final_state = app.invoke(initial_state)
+
+        # Display answer
+        print("\n" + "="*60)
+        print("ANSWER:")
+        print(final_state["generation"])
+        print("="*60)
+
+if __name__ == "__main__":
+    main()
+```
+
+**Usage:**
+```bash
+python -m src.main
 ```
 
 ---
 
-## 6. Testing the System {#testing}
+## 6. Docker Deployment
 
-### How to Run
+### 6.1. Dockerfile
 
-1. **Save the code** to a file named `agentic_rag.py`
+```dockerfile
+FROM python:3.11-slim
 
-2. **Run the script**:
-   ```bash
-   python agentic_rag.py
-   ```
+WORKDIR /app
 
-### What to Expect
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-The system will:
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-1. **Load documents** from the specified URLs
-2. **Create embeddings** and store them in Chroma
-3. **Build the LangGraph** workflow
-4. **Execute test queries** showing each step:
-   - Retrieval
-   - Grading
-   - Query rewriting (if needed)
-   - Web search (if needed)
-   - Generation
+# Copy application code
+COPY . .
 
-### Sample Output
+# Create necessary directories
+RUN mkdir -p data indices
 
+CMD ["python", "-m", "src.main"]
 ```
-==========================================================================
-QUESTION: What are the key components of an AI agent?
-==========================================================================
 
---- RETRIEVE DOCUMENTS ---
-Query: What are the key components of an AI agent?
-Retrieved 3 documents
+### 6.2. docker-compose.yml
 
---- GRADE DOCUMENTS ---
-✓ Document 1: RELEVANT
-✓ Document 2: RELEVANT
-✗ Document 3: NOT RELEVANT
+```yaml
+version: '3.8'
 
-✓ 2 relevant document(s) found.
+services:
+  agentic-rag:
+    build: .
+    container_name: agentic-gemini-rag
+    volumes:
+      - ./data:/app/data          # Mount your documents
+      - ./indices:/app/indices    # Persist indices
+      - ./.env:/app/.env          # Environment variables
+    stdin_open: true
+    tty: true
+    environment:
+      - PYTHONUNBUFFERED=1
+```
 
---- GENERATE RESPONSE ---
-Generated response: AI agents consist of three key components: Planning, Memory, and Tool Use...
+### 6.3. .env.example
 
-==========================================================================
-FINAL ANSWER
-==========================================================================
-AI agents consist of three key components: Planning, Memory, and Tool Use...
-==========================================================================
+```bash
+# Gemini API Key (get from https://aistudio.google.com/app/apikey)
+GEMINI_API_KEY=your_api_key_here
+
+# Model Configuration
+GEMINI_MODEL=gemini-2.0-flash-exp
+GEMINI_EMBEDDING_MODEL=models/text-embedding-004
+
+# Retrieval Settings
+CHUNK_SIZE=1000
+CHUNK_OVERLAP=200
+RETRIEVAL_TOP_K=4
+
+# Hybrid Search Weights (must sum to 1.0)
+VECTOR_WEIGHT=0.5
+BM25_WEIGHT=0.5
+
+# Agentic Workflow
+MAX_RETRIES=2
+TEMPERATURE=0
+
+# Paths (usually don't need to change)
+DATA_DIR=./data
+INDICES_DIR=./indices
+```
+
+### 6.4. Complete Setup Instructions
+
+**Step 1: Clone and setup**
+```bash
+git clone <your-repo>
+cd agentic-gemini-rag
+cp .env.example .env
+# Edit .env and add your GEMINI_API_KEY
+```
+
+**Step 2: Add your documents**
+```bash
+# Place PDF, TXT, or MD files in the data/ directory
+cp /path/to/your/documents/*.pdf data/
+```
+
+**Step 3: Build and run with Docker**
+```bash
+# Build the Docker image
+docker-compose build
+
+# Run indexing (one-time setup)
+docker-compose run agentic-rag python scripts/index_documents.py
+
+# Start interactive query session
+docker-compose run agentic-rag
+```
+
+**Alternative: Run locally without Docker**
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Index documents
+python scripts/index_documents.py
+
+# Run queries
+python -m src.main
 ```
 
 ---
 
-## 7. Advanced Features {#advanced-features}
+## 7. Complete requirements.txt
 
-### Feature 1: Custom Document Sources
+```txt
+# Core LangChain
+langchain==0.1.20
+langchain-core==0.1.52
+langchain-community==0.0.38
 
-Replace the URL list with your own:
+# Google Gemini
+langchain-google-genai==1.0.1
 
-```python
-urls = [
-    "https://your-documentation-site.com/docs/",
-    "https://your-blog.com/article-1/",
-]
+# Vector Store
+faiss-cpu==1.7.4
+
+# Document Loaders
+pypdf==3.17.4
+unstructured==0.12.5
+
+# Utilities
+python-dotenv==1.0.1
+
+# LangGraph
+langgraph==0.0.55
+
+# BM25
+rank-bm25==0.2.2
 ```
 
-Or load from local files:
+---
 
+## 8. Testing Your System
+
+For educational purposes, we'll focus on basic manual testing rather than comprehensive unit tests.
+
+### 8.1. Test Your Setup
+
+**Test 1: Verify Gemini API**
 ```python
-from langchain_community.document_loaders import TextLoader, PyPDFLoader
+# test_gemini.py
+from src.components.models import get_llm, get_embeddings
 
-loader = TextLoader("your_document.txt")
-docs = loader.load()
+# Test LLM
+llm = get_llm()
+response = llm.invoke("Say hello!")
+print(f"LLM Response: {response.content}")
+
+# Test embeddings
+embeddings = get_embeddings()
+vector = embeddings.embed_query("test query")
+print(f"Embedding dimension: {len(vector)}")
 ```
 
-### Feature 2: Human-in-the-Loop
+**Test 2: Verify Indexing**
+```bash
+# After running indexing script, check if files exist
+ls -lh indices/
+# Should see: faiss_index/ and bm25_index.pkl
+```
 
-Add interruption points for human review:
+**Test 3: Test Hybrid Retrieval**
+```python
+# test_retrieval.py
+from src.components.retrieval import get_hybrid_retriever
+
+retriever = get_hybrid_retriever()
+docs = retriever.get_relevant_documents("your test query")
+print(f"Retrieved {len(docs)} documents")
+for i, doc in enumerate(docs):
+    print(f"\nDoc {i+1}: {doc.page_content[:200]}...")
+```
+
+### 8.2. Example Query Session
+
+Here's what a typical session looks like:
+
+```
+=== Agentic RAG with Gemini & Hybrid Search ===
+
+Ask a question (or 'quit' to exit): What is LangGraph?
+
+============================================================
+---RETRIEVE (attempt 1)---
+Retrieved 4 documents
+---GRADE DOCUMENTS---
+  ✓ Document is relevant
+  ✓ Document is relevant
+  ✗ Document is not relevant
+  ✓ Document is relevant
+Filtered to 3 relevant documents
+---DECISION: GENERATE ANSWER---
+---GENERATE ANSWER---
+
+============================================================
+ANSWER:
+LangGraph is a framework for building stateful, multi-agent workflows
+using language models. It provides a directed graph structure where
+nodes represent computational steps and edges define the flow of control...
+============================================================
+
+Ask a question (or 'quit' to exit): quit
+Goodbye!
+```
+
+---
+
+## 9. Extending the System
+
+Now that you have a working foundation, here are ways to extend it:
+
+### 9.1. Add Web Search Fallback
+
+Currently unused, you can add a web search node:
 
 ```python
-# In the graph definition
-from langgraph.checkpoint.memory import MemorySaver
+# src/components/tools.py
+from langchain_community.tools import DuckDuckGoSearchRun
 
-# Add interrupt before generation
-workflow.add_node("generate", generate_response)
-workflow.add_edge("grade", "generate")
+def get_web_search_tool():
+    return DuckDuckGoSearchRun()
 
-# Compile with interrupt
-graph = workflow.compile(
-    checkpointer=MemorySaver(),
-    interrupt_before=["generate"]  # Pause before generating
+# src/nodes/web_search.py
+from src.components.tools import get_web_search_tool
+from src.state import GraphState
+
+def web_search(state: GraphState) -> GraphState:
+    """Perform web search when internal docs insufficient."""
+    print("---WEB SEARCH---")
+    question = state["question"]
+
+    search = get_web_search_tool()
+    results = search.run(question)
+
+    state["documents"] = [results]
+    return state
+```
+
+Then modify the routing logic to use web search after max retries.
+
+### 9.2. Add Conversation Memory
+
+Track conversation history for multi-turn dialogues:
+
+```python
+# Extend GraphState
+class GraphState(TypedDict):
+    question: str
+    generation: str
+    documents: List[str]
+    retries: int
+    chat_history: List[tuple]  # NEW
+```
+
+### 9.3. Improve Chunking Strategy
+
+Experiment with semantic chunking instead of fixed-size:
+
+```python
+from langchain_experimental.text_splitter import SemanticChunker
+
+def semantic_chunk_documents(documents):
+    embeddings = get_embeddings()
+    splitter = SemanticChunker(embeddings)
+    return splitter.split_documents(documents)
+```
+
+### 9.4. Add Document Metadata Filtering
+
+Enhance retrieval with metadata filters (e.g., date, source, author):
+
+```python
+vector_retriever = vectorstore.as_retriever(
+    search_kwargs={
+        "k": 4,
+        "filter": {"source": "technical_docs"}  # Filter by metadata
+    }
 )
 ```
 
-### Feature 3: Multiple Vector Stores
+---
 
-Create separate vector stores for different topics:
+## 10. Key Takeaways and Architecture Summary
 
-```python
-tech_vectorstore = setup_vectorstore(tech_urls)
-medical_vectorstore = setup_vectorstore(medical_urls)
+### Why This Architecture Works
 
-def route_to_vectorstore(state: AgentState) -> str:
-    """Route based on question topic"""
-    question = state["retrieval_question"]
-    # Use LLM to classify the question
-    # Return "tech" or "medical"
+1. **Hybrid Search**: Combines semantic understanding (FAISS) with keyword precision (BM25) for robust retrieval
+2. **Self-Correction**: Query rewriting creates a feedback loop that improves results
+3. **Grading**: LLM-based relevance filtering prevents hallucinations from irrelevant context
+4. **State Machine**: LangGraph provides clear, debuggable workflow logic
+5. **Persistence**: Saving indices enables fast subsequent queries without re-indexing
+
+### Component Relationships
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    User Query                           │
+└───────────────────┬─────────────────────────────────────┘
+                    │
+                    v
+┌─────────────────────────────────────────────────────────┐
+│              LangGraph State Machine                    │
+│  ┌──────────┐   ┌───────┐   ┌─────────┐   ┌─────────┐ │
+│  │ Retrieve │──▶│ Grade │──▶│ Rewrite │──▶│Generate │ │
+│  └────┬─────┘   └───┬───┘   └────┬────┘   └────┬────┘ │
+│       │             │             │              │      │
+└───────┼─────────────┼─────────────┼──────────────┼──────┘
+        │             │             │              │
+        v             v             v              v
+┌────────────┐  ┌─────────┐  ┌─────────┐    ┌─────────┐
+│Hybrid      │  │ Gemini  │  │ Gemini  │    │ Gemini  │
+│Retriever   │  │ LLM     │  │ LLM     │    │ LLM     │
+│(FAISS+BM25)│  │(Grading)│  │(Rewrite)│    │(Generate)│
+└────────────┘  └─────────┘  └─────────┘    └─────────┘
 ```
 
-### Feature 4: Better Embedding Models
+### When to Use This Architecture
 
-Try different open-source embedding models:
+**Ideal for:**
+- Internal knowledge bases (company docs, research papers)
+- Educational content Q&A
+- Technical documentation chatbots
+- Personal knowledge management
 
-```python
-# BGE M3 (excellent multilingual)
-embeddings = OllamaEmbeddings(model="bge-m3")
-
-# or Nomic Embed (optimized for long context)
-embeddings = OllamaEmbeddings(model="nomic-embed-text")
-```
-
-### Feature 5: Reranking
-
-Add a reranking step after retrieval:
-
-```python
-def rerank_documents(state: AgentState) -> AgentState:
-    """Rerank documents for better relevance"""
-    documents = state["documents"]
-    question = state["retrieval_question"]
-    
-    # Use LLM to score each document
-    scores = []
-    for doc in documents:
-        score = llm.invoke(
-            f"Rate relevance 0-10: Q: {question}\nDoc: {doc}"
-        )
-        scores.append(int(score))
-    
-    # Sort by score
-    sorted_docs = [doc for _, doc in sorted(
-        zip(scores, documents), reverse=True
-    )]
-    
-    return {**state, "documents": sorted_docs[:3]}
-```
+**Not ideal for:**
+- Real-time data (use web search or API integration)
+- Extremely large corpora (consider Qdrant/Weaviate instead of FAISS)
+- Multi-modal documents (would need vision models)
 
 ---
 
-## 8. Troubleshooting {#troubleshooting}
+## 11. Troubleshooting Common Issues
 
-### Issue 1: Ollama Connection Error
+### Issue 1: "No module named 'src'"
+**Solution:** Run from project root: `python -m src.main` (not `python src/main.py`)
 
-**Error**: `ConnectionError: Could not connect to Ollama`
+### Issue 2: FAISS index load fails
+**Solution:** Ensure you indexed with the same embedding model you're loading with
 
-**Solution**:
-```bash
-# Restart Ollama service
-ollama serve
+### Issue 3: BM25 pickle error
+**Solution:** Rebuild indices - pickle files aren't compatible across Python versions
 
-# Or check if it's running
-ps aux | grep ollama
-```
+### Issue 4: Gemini API quota exceeded
+**Solution:** Add rate limiting or use caching for repeated queries
 
-### Issue 2: Out of Memory
+### Issue 5: All documents graded as irrelevant
+**Solution:**
+- Check chunk quality (may be too small/large)
+- Adjust grading prompt to be less strict
+- Verify your documents actually contain relevant information
 
-**Error**: `RuntimeError: CUDA out of memory`
+---
 
-**Solution**:
-- Use a smaller model: `ollama pull llama3.1:8b` instead of larger versions
-- Reduce chunk size in text splitter
-- Lower the number of retrieved documents (k=2 instead of k=3)
+## 12. Additional Resources
 
-### Issue 3: Slow Generation
-
-**Problem**: Responses take too long
-
-**Solution**:
-- Use quantized models (Q4 or Q5)
-- Enable GPU acceleration if available
-- Reduce max_tokens in generation
-- Use smaller models for grading/rewriting
-
-### Issue 4: Poor Retrieval Quality
-
-**Problem**: System retrieves irrelevant documents
-
-**Solution**:
-- Improve chunking strategy (adjust chunk_size and overlap)
-- Try different embedding models
-- Add metadata filtering
-- Implement hybrid search (keyword + semantic)
-
-### Issue 5: Web Search Not Working
-
-**Error**: `duckduckgo_search` fails
-
-**Solution**:
-```bash
-# Update the package
-pip install --upgrade duckduckgo-search
-
-# Or use alternative (Brave Search, SerpAPI, etc.)
-```
+- **LangGraph Documentation**: [https://langchain-ai.github.io/langgraph/](https://langchain-ai.github.io/langgraph/)
+- **Gemini API**: [https://ai.google.dev/](https://ai.google.dev/)
+- **Hybrid Search Explained**: [Hybrid Search RAG in 10 Minutes (Video)](https://www.youtube.com/watch?v=Hn0UK2l1Nkw)
+- **FAISS Documentation**: [https://github.com/facebookresearch/faiss](https://github.com/facebookresearch/faiss)
+- **BM25 Algorithm**: [https://en.wikipedia.org/wiki/Okapi_BM25](https://en.wikipedia.org/wiki/Okapi_BM25)
 
 ---
 
 ## Conclusion
 
-You now have a **fully functional Agentic RAG system** built with:
+You now have a complete blueprint for building an **Agentic RAG system** with:
 
-✅ **LangGraph** for orchestration  
-✅ **Ollama** for free, local LLM inference  
-✅ **Chroma** for vector storage  
-✅ **Open-source embeddings**  
-✅ **Intelligent decision-making**  
-✅ **Self-correction capabilities**  
-✅ **Web search fallback**  
+✅ **Hybrid Search** (FAISS + BM25) for superior retrieval
+✅ **Self-correcting workflow** with query rewriting
+✅ **LLM-based grading** to filter irrelevant documents
+✅ **Gemini integration** for fast, accurate generation
+✅ **Docker deployment** for easy setup
+✅ **Persistent indices** for efficient querying
 
-### Next Steps
+The repository structure is modular and extensible—perfect for learning and experimentation. Clone it, add your documents, and start building intelligent RAG applications!
 
-1. **Customize** the prompts for your domain
-2. **Add** more sophisticated grading logic
-3. **Implement** conversation memory
-4. **Deploy** with FastAPI or Streamlit
-5. **Scale** with LangGraph Cloud or self-hosted infrastructure
+**Next steps:**
+1. Set up the repository following Section 6.4
+2. Index your own documents
+3. Experiment with different chunk sizes and retrieval parameters
+4. Extend with web search, memory, or metadata filtering
 
-### Resources
-
-- **LangGraph Docs**: https://docs.langchain.com/langgraph
-- **Ollama Models**: https://ollama.com/library
-- **Chroma DB**: https://www.trychroma.com/
-- **LangChain Academy**: Free course on LangGraph basics
-
----
-
-**Happy Building! 🚀**
-
-*This tutorial was created with the latest LangGraph APIs (v0.3.21) and best practices as of November 2025.*
+Happy building! 🚀
