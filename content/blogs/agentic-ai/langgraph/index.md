@@ -1,7 +1,7 @@
 ---
 title: "Building an Agentic Hybrid RAG System: Complete Guide with LangGraph and Gemini"
 date: 2025-11-18
-draft: false
+draft: true
 author: "Saeed Mehrang"
 tags: ["LangGraph", "RAG", "Agentic AI", "Gemini", "LangChain", "Hybrid Search", "Docker"]
 categories: ["Agentic AI Workflows", "Tutorials", "Machine Learning"]
