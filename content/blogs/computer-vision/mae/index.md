@@ -14,7 +14,7 @@ cover:
 
 Masked Autoencoders (MAE) have revolutionized self-supervised learning for vision transformers [^1]. In this tutorial, we'll build a working MAE from scratch in PyTorch, understanding each component along the way and train it on a MNIST dataset as a toy exercise.
 
-Most of the vision-transformer (ViT) backbones that are widely used in the SOTA vision applications are typically trained with MAE or one of its variants. For example, Segment-Anything-V1 used a pretrained ViT encoder backbone and upgrade it. See my mini blog series on Segment-Anything-V1 [here](../segment-anything-1/) if you are interested.
+Most of the vision-transformer (ViT) backbones that are widely used in the SOTA vision applications are typically trained with MAE or one of its variants. For example, Segment-Anything-V1 used a pretrained ViT encoder backbone and upgrade it. See my mini blog series on Segment-Anything-V1 [here](../segmentation-models/segment-anything-1/) if you are interested.
 
 ## Overview: What Makes MAE Special?
 
