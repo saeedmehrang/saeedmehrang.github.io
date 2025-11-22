@@ -576,19 +576,19 @@ def visualize_reconstruction(model, dataloader, config, num_samples=5):
     plt.suptitle(f"MAE Reconstruction (Mask Ratio: {config['mask_ratio']:.2f})", y=1.02)
     
     for i in range(num_samples):
-        # Original Image (Row 1)
+        # Original Image (Col 1)
         orig_img = test_images[i].cpu().squeeze().numpy()
         axes[i, 0].imshow(orig_img, cmap='gray')
         axes[i, 0].set_title(f"Original {i+1}")
         axes[i, 0].axis('off')
 
-        # Masked Image (Visible Only) (Row 2)
+        # Masked Image (Visible Only) (Col 2)
         masked_img = visible_images[i].cpu().squeeze().numpy()
         axes[i, 1].imshow(masked_img, cmap='gray')
         axes[i, 1].set_title("Masked Input")
         axes[i, 1].axis('off')
         
-        # Reconstructed Image (Row 3)
+        # Reconstructed Image (Col 3)
         recon_img = reconstructed_images[i].cpu().squeeze().numpy()
         # Clip pixel values to [0, 1] range for visualization
         recon_img = np.clip(recon_img, 0, 1) 
@@ -611,6 +611,13 @@ trained_model, config, test_dataloader = train_mae()
 print("\nStarting visualization of test set reconstruction...")
 visualize_reconstruction(trained_model, test_dataloader, config, num_samples=4)
 ```
+
+
+Output of the visualization showcasing how the model reconstructs the masked patches
+
+{{< framed_image src="mae-out.png" alt="reconstruction-illustration" width="700px" height="1100px" >}}
+{{< /framed_image >}}
+
 
 ## Key Design Choices Explained
 
