@@ -438,7 +438,8 @@ import math
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def unpatchify(x, image_size, patch_size, in_channels):
